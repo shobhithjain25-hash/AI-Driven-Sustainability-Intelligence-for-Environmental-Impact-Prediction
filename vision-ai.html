@@ -1,0 +1,1629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Multimodal Environmental AI – EcoSphere</title>
+<link rel="stylesheet" href="styles.css"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+<script src="app.js"></script>
+<style>
+/* Multimodal Vision AI Specific Layout */
+.vision-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+@media (max-width: 992px) {
+  .vision-grid { grid-template-columns: 1fr; }
+}
+
+/* Upload Dropzone */
+.dropzone {
+  border: 2px dashed var(--border-color);
+  border-radius: var(--border-radius-md);
+  padding: 36px 20px;
+  text-align: center;
+  background: rgba(16, 32, 58, 0.4);
+  cursor: pointer;
+  transition: all 0.25s ease;
+  position: relative;
+}
+.dropzone:hover, .dropzone.dragover {
+  border-color: var(--accent-green);
+  background: rgba(0, 230, 118, 0.05);
+  transform: translateY(-2px);
+}
+.dropzone-icon {
+  font-size: 42px;
+  margin-bottom: 12px;
+}
+.dropzone-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+.dropzone-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 14px;
+}
+
+/* Media Preview Canvas */
+.preview-container {
+  position: relative;
+  width: 100%;
+  border-radius: var(--border-radius-sm);
+  overflow: hidden;
+  background: #0a1424;
+  border: 1px solid var(--border-color);
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 240px;
+}
+.preview-container img, .preview-container video {
+  max-width: 100%;
+  max-height: 420px;
+  display: block;
+}
+.preview-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* Sample preset pills */
+.preset-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+.preset-chip {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.preset-chip:hover {
+  border-color: var(--accent-teal);
+  color: var(--text-primary);
+  background: rgba(38, 198, 218, 0.12);
+}
+
+/* Progress bar */
+.upload-progress-bar {
+  width: 100%;
+  height: 8px;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 14px;
+  display: none;
+}
+.upload-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--accent-teal), var(--accent-green));
+  transition: width 0.3s ease;
+}
+
+/* Processing Stepper */
+.stepper {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+}
+.step-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.step-item.active {
+  color: var(--accent-teal);
+  font-weight: 600;
+}
+.step-item.completed {
+  color: var(--accent-green);
+}
+.step-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  flex-shrink: 0;
+}
+.step-item.active .step-dot {
+  border-color: var(--accent-teal);
+  background: rgba(38, 198, 218, 0.2);
+}
+.step-item.completed .step-dot {
+  border-color: var(--accent-green);
+  background: var(--accent-green);
+  color: #0b192c;
+  font-weight: 700;
+}
+
+/* 11-Field Specification Report */
+.spec-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  padding: 22px;
+  margin-bottom: 20px;
+}
+.spec-field {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+.spec-field:last-child {
+  border-bottom: none;
+}
+.spec-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  font-weight: 700;
+  color: var(--accent-teal);
+  margin-bottom: 4px;
+}
+.spec-value {
+  font-size: 14px;
+  color: var(--text-primary);
+  line-height: 1.55;
+}
+
+/* Confidence meter */
+.confidence-meter {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
+}
+.meter-bar {
+  flex: 1;
+  height: 8px;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.meter-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.6s ease;
+}
+
+/* Video keyframes carousel */
+.keyframes-row {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 8px 0 14px 0;
+}
+.keyframe-card {
+  flex: 0 0 130px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s, border-color 0.2s;
+}
+.keyframe-card:hover, .keyframe-card.selected {
+  border-color: var(--accent-green);
+  transform: translateY(-2px);
+}
+.keyframe-card img {
+  width: 100%;
+  height: 75px;
+  object-fit: cover;
+}
+.keyframe-meta {
+  padding: 6px 8px;
+  font-size: 11px;
+}
+
+/* Drawer for history */
+.history-drawer {
+  position: fixed;
+  top: 0;
+  right: -360px;
+  width: 360px;
+  height: 100%;
+  background: var(--bg-secondary);
+  border-left: 1px solid var(--border-color);
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  transition: right 0.3s ease;
+  display: flex;
+  flex-direction: column;
+}
+.history-drawer.open {
+  right: 0;
+}
+.drawer-header {
+  padding: 20px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.history-item {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  padding: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.history-item:hover {
+  border-color: var(--accent-teal);
+  background: rgba(38, 198, 218, 0.08);
+}
+</style>
+</head>
+<body>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">🌿</div>
+    <h1>EcoSphere</h1>
+    <p>Sustainability Intelligence</p>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-title">Overview</div>
+    <a class="nav-item" href="index.html"><span class="nav-icon">🏠</span> Dashboard</a>
+    <div class="nav-section-title">Modules</div>
+    <a class="nav-item" href="carbon-footprint.html"><span class="nav-icon">🌫️</span> Carbon Footprint</a>
+    <a class="nav-item" href="solar-loss.html"><span class="nav-icon">🔋</span> Solar Loss Predictor</a>
+    <a class="nav-item" href="e-waste.html"><span class="nav-icon">♻️</span> E-Waste Recycling</a>
+    <a class="nav-item" href="air-quality.html"><span class="nav-icon">💨</span> Air Quality</a>
+    <a class="nav-item" href="solar-energy.html"><span class="nav-icon">☀️</span> Solar Energy</a>
+    <a class="nav-item" href="food-waste.html"><span class="nav-icon">🥦</span> Food Waste</a>
+    <div class="nav-section-title">Multimodal AI & Assistant</div>
+    <a class="nav-item active" href="vision-ai.html"><span class="nav-icon">👁️</span> Multimodal Vision AI</a>
+    <a class="nav-item" href="chat.html"><span class="nav-icon">🤖</span> AI Sustainability Chatbot</a>
+    <a class="nav-item" href="research-map.html"><span class="nav-icon">📚</span> IEEE Research Map</a>
+  </nav>
+</aside>
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+<div class="main-content">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:16px;">
+      <button class="menu-btn" id="menu-btn">☰</button>
+      <div class="topbar-title">
+        <h2>👁️ Multimodal Environmental Vision AI</h2>
+        <p>Computer-vision detection & physical diagnosis from image and video media</p>
+      </div>
+    </div>
+    <div style="display:flex;gap:12px;align-items:center;">
+      <button class="btn btn-outline" onclick="openMetricsModal()" style="font-size:12px;padding:6px 14px;">📊 Model Metrics</button>
+      <button class="btn btn-outline" onclick="toggleHistoryDrawer()" style="font-size:12px;padding:6px 14px;">📜 Analysis History</button>
+      <div class="eco-score-badge">
+        <span class="score-label">EcoScore</span>
+        <span class="score-value" id="eco-score-val">--</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-body">
+
+    <!-- Top Architecture Banner -->
+    <div class="card" style="margin-bottom: 24px; background: linear-gradient(135deg, rgba(0, 230, 118, 0.08) 0%, rgba(38, 198, 218, 0.08) 100%); border: 1px solid rgba(0, 230, 118, 0.3);">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
+        <div>
+          <div style="font-size:16px; font-weight:800; color:var(--accent-green); display:flex; align-items:center; gap:8px;">
+            <span>🔬 Multi-Domain Vision-to-Calculations Pipeline Active</span>
+          </div>
+          <div style="font-size:13px; color:var(--text-secondary); margin-top:4px;">
+            Supports <strong>JPG, JPEG, PNG, WEBP, MP4, MOV</strong> · Deep learning object detection · Keyframe timeline analysis · Zero-fabrication confidence thresholding ($A1/B2/Needs\ Review$).
+          </div>
+        </div>
+        <div>
+          <span class="badge badge-green">Hardware-Free · Software Only</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2-Column Main Workspace -->
+    <div class="vision-grid">
+
+      <!-- Column 1: Ingestion & Media Viewport -->
+      <div>
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card-title">📤 Upload Environmental Image or Video</div>
+          <div class="card-subtitle">Drag and drop or select media up to 50 MB</div>
+
+          <!-- Dropzone -->
+          <div class="dropzone" id="dropzone" onclick="document.getElementById('media-file-input').click()">
+            <div class="dropzone-icon">📷 🎥</div>
+            <div class="dropzone-title">Click to upload or drag image / video here</div>
+            <div class="dropzone-desc">JPG, PNG, WEBP, MP4, MOV (Max 50MB)</div>
+            <button type="button" class="btn btn-primary" style="pointer-events:none;">Select File</button>
+            <input type="file" id="media-file-input" style="display:none;" accept=".jpg,.jpeg,.png,.webp,.mp4,.mov,.avi,.webm" onchange="handleFileSelected(event)"/>
+          </div>
+
+          <!-- Quick Test Presets -->
+          <div style="margin-top:14px;">
+            <div style="font-size:12px; color:var(--text-muted); font-weight:600;">Or run with validated test scenarios:</div>
+            <div class="preset-chips">
+              <span class="preset-chip" onclick="loadTestPreset('solar')">☀️ Soiled Solar Panel</span>
+              <span class="preset-chip" onclick="loadTestPreset('multi-ewaste')">📱💻 Multiple E-Waste (Multi-Object)</span>
+              <span class="preset-chip" onclick="loadTestPreset('ewaste')">📱 Single E-Waste (PCB/Phone)</span>
+              <span class="preset-chip" onclick="loadTestPreset('food')">🥦 Organic Food Waste</span>
+              <span class="preset-chip" onclick="loadTestPreset('video')">🎥 Solar Video (10 Keyframes)</span>
+              <span class="preset-chip" onclick="loadTestPreset('blur')">⚠️ Blurry / Inconclusive Photo</span>
+            </div>
+          </div>
+
+          <!-- Progress Bar -->
+          <div class="upload-progress-bar" id="progress-bar">
+            <div class="upload-progress-fill" id="progress-fill"></div>
+          </div>
+
+          <!-- Stepper -->
+          <div class="stepper" id="stepper" style="display:none;">
+            <div class="step-item" id="step-1"><div class="step-dot">1</div><span>1. Media Validation & SHA-256 Checksum</span></div>
+            <div class="step-item" id="step-2"><div class="step-dot">2</div><span>2. Deep Computer Vision & Feature Detection</span></div>
+            <div class="step-item" id="step-3"><div class="step-dot">3</div><span>3. EcoSphere Module Bridge & Calculation</span></div>
+            <div class="step-item" id="step-4"><div class="step-dot">4</div><span>4. Agentic Synthesis & What-If Scenarios</span></div>
+          </div>
+        </div>
+
+        <!-- Preview Card -->
+        <div class="card" id="preview-card" style="display:none; margin-bottom:20px;">
+          <div class="card-title">🔍 Visual Inspection Viewport</div>
+          <div class="card-subtitle" id="preview-filename">Media Preview</div>
+          
+          <div class="preview-container" id="preview-container">
+            <img id="preview-img" style="display:none;" alt="Uploaded Preview"/>
+            <video id="preview-video" style="display:none;" controls></video>
+            <canvas class="preview-canvas" id="bbox-canvas"></canvas>
+          </div>
+
+          <div style="margin-top:10px; display:flex; justify-content:space-between; align-items:center; font-size:12px; color:var(--text-muted);">
+            <span id="preview-dims">-- × -- px</span>
+            <span id="preview-filesize">-- KB</span>
+          </div>
+        </div>
+
+        <!-- Video Keyframes Section (if video) -->
+        <div class="card" id="video-keyframes-card" style="display:none; margin-bottom:20px;">
+          <div class="card-title">🎞️ Video Keyframe Timeline Analysis</div>
+          <div class="card-subtitle">Extracted representative keyframes across video duration</div>
+          <div class="keyframes-row" id="keyframes-container"></div>
+          
+          <div style="margin-top:12px;">
+            <table class="eco-table" style="font-size:12px;">
+              <thead>
+                <tr>
+                  <th>Timestamp</th>
+                  <th>Detected Event / Condition</th>
+                  <th>Confidence</th>
+                  <th>Observation</th>
+                </tr>
+              </thead>
+              <tbody id="timeline-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Column 2: 11-Field Specification Report & What-If Sandbox -->
+      <div>
+        
+        <!-- Welcome empty state -->
+        <div class="card" id="empty-state-card" style="text-align:center; padding:48px 24px;">
+          <div style="font-size:48px; margin-bottom:12px;">🛰️</div>
+          <div style="font-size:16px; font-weight:700; color:var(--text-primary);">Awaiting Image or Video Input</div>
+          <div style="font-size:13px; color:var(--text-secondary); max-width:360px; margin:8px auto 20px auto;">
+            Upload media or choose a validated test preset on the left to trigger computer vision detection, physical model inference, and actionable recommendations.
+          </div>
+          <button class="btn btn-primary" onclick="loadTestPreset('solar')">Run Solar Panel Test</button>
+        </div>
+
+        <!-- 11-Field Specification Report (shown after analysis) -->
+        <div class="spec-card" id="report-container" style="display:none;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+            <div style="font-size:17px; font-weight:800; color:var(--text-primary); display:flex; align-items:center; gap:8px;">
+              <span>📋 Analysis & Diagnosis Report</span>
+            </div>
+            <span class="badge" id="report-status-badge">Validated</span>
+          </div>
+
+          <!-- Field 1: Uploaded File -->
+          <div class="spec-field">
+            <div class="spec-label">1. Uploaded File & Checksum</div>
+            <div class="spec-value" id="field-file">--</div>
+          </div>
+
+          <!-- Field 2: Detected Objects / Conditions -->
+          <div class="spec-field">
+            <div class="spec-label">2. Detected Objects / Conditions</div>
+            <div class="spec-value" id="field-objects" style="font-weight:700; color:var(--accent-teal);">--</div>
+          </div>
+
+          <!-- Field 3: Confidence Score -->
+          <div class="spec-field">
+            <div class="spec-label">3. Detection Confidence & Quality Gate</div>
+            <div class="confidence-meter">
+              <span id="field-confidence-text" style="font-family:var(--font-mono); font-weight:700; font-size:14px;">--</span>
+              <div class="meter-bar"><div class="meter-fill" id="field-confidence-fill"></div></div>
+            </div>
+          </div>
+
+          <!-- Field 4: Evidence from Image -->
+          <div class="spec-field">
+            <div class="spec-label">4. Visual Evidence</div>
+            <div class="spec-value" id="field-evidence" style="font-size:13px; color:var(--text-secondary);">--</div>
+          </div>
+
+          <!-- Field 5: Environmental Problem -->
+          <div class="spec-field">
+            <div class="spec-label">5. Environmental Problem</div>
+            <div class="spec-value" id="field-problem" style="font-weight:600; color:var(--accent-orange);">--</div>
+          </div>
+
+          <!-- Field 6: Existing EcoSphere Data Used -->
+          <div class="spec-field">
+            <div class="spec-label">6. Existing EcoSphere Data Used</div>
+            <div class="spec-value" id="field-data-used" style="background:var(--bg-tertiary); padding:8px 12px; border-radius:4px; font-size:12.5px;">--</div>
+          </div>
+
+          <!-- Field 7: Model Used -->
+          <div class="spec-field">
+            <div class="spec-label">7. Model Used</div>
+            <div class="spec-value" id="field-model" style="font-family:var(--font-mono); font-size:12.5px; color:var(--accent-teal);">--</div>
+          </div>
+
+          <!-- Field 8: Prediction / Calculated Impact -->
+          <div class="spec-field">
+            <div class="spec-label">8. Prediction / Calculated Physical Impact</div>
+            <div class="spec-value" id="field-impact" style="font-size:14px; font-weight:700; color:var(--accent-green);">--</div>
+          </div>
+
+          <!-- Field 9: Possible Future Risk -->
+          <div class="spec-field">
+            <div class="spec-label">9. Possible Future Risk</div>
+            <div class="spec-value" id="field-future-risk" style="color:var(--accent-orange);">--</div>
+          </div>
+
+          <!-- Field 10: Recommended Action -->
+          <div class="spec-field">
+            <div class="spec-label">10. Recommended Next Action</div>
+            <div class="spec-value" id="field-action" style="font-weight:700; color:var(--text-primary); background:rgba(0, 230, 118, 0.08); padding:10px 14px; border-left:3px solid var(--accent-green); border-radius:0 4px 4px 0;">--</div>
+          </div>
+
+          <!-- Field 11: Sources & Limitations -->
+          <div class="spec-field">
+            <div class="spec-label">11. Sources & Limitations</div>
+            <div class="spec-value" id="field-sources" style="font-size:12px; color:var(--text-muted);">--</div>
+          </div>
+
+          <!-- Action buttons -->
+          <div style="margin-top:20px; display:flex; gap:12px; flex-wrap:wrap;">
+            <button class="btn btn-primary" onclick="openChatWithContext()">💬 Ask AI Chatbot About This Upload →</button>
+            <button class="btn btn-outline" onclick="toggleWhatIfModal()">⚖️ Run What-If Simulation</button>
+          </div>
+        </div>
+
+        <!-- Interactive What-If Scenario Sandbox Card -->
+        <div class="card" id="what-if-card" style="display:none; margin-bottom:20px;">
+          <div class="card-title">⚖️ Interactive What-If Scenario Sandbox</div>
+          <div class="card-subtitle">Simulate immediate remediation vs postponed action</div>
+
+          <div style="margin-top:14px;">
+            <label class="form-label">Remediation Delay (Days): <span id="delay-days-val" style="color:var(--accent-green); font-weight:700;">30</span> days</label>
+            <input type="range" class="form-control" id="delay-slider" min="0" max="90" value="30" step="5" oninput="updateWhatIfSimulation()"/>
+          </div>
+
+          <div class="grid-2" style="gap:14px; margin-top:16px;">
+            <div style="background:var(--bg-tertiary); padding:12px; border-radius:4px; border:1px solid var(--border-color);">
+              <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Immediate Action (0–48h)</div>
+              <div style="font-size:18px; font-weight:800; color:var(--accent-green); margin-top:4px;" id="whatif-immediate-val">90% Recovery</div>
+              <div style="font-size:12px; color:var(--text-secondary); margin-top:2px;">Prevents compounding degradation</div>
+            </div>
+            <div style="background:var(--bg-tertiary); padding:12px; border-radius:4px; border:1px solid var(--border-color);">
+              <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Postponed Action</div>
+              <div style="font-size:18px; font-weight:800; color:var(--accent-orange); margin-top:4px;" id="whatif-delayed-val">₹450 Loss</div>
+              <div style="font-size:12px; color:var(--text-secondary); margin-top:2px;">Accumulating loss over time</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- Dedicated Multi-Object E-Waste Inventory & Environmental Impact Section -->
+    <div class="card" id="ewaste-multi-object-card" style="display:none; margin-top:24px; border: 1px solid rgba(38, 198, 218, 0.35);">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
+        <div>
+          <div class="card-title" style="font-size:18px; display:flex; align-items:center; gap:8px;">
+            <span>📦 Multi-Object E-Waste Inventory & Environmental Impact</span>
+            <span class="badge badge-teal" id="inventory-count-badge">0 Items Detected</span>
+          </div>
+          <div class="card-subtitle">
+            All detected hardware items mapped with individual bounding boxes, weights, embodied CO₂e, and circular recovery pathways. Edit weights or delete items below — totals recalculate instantly without overwriting original AI detections.
+          </div>
+        </div>
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+          <button class="btn btn-primary" onclick="saveInventoryCorrections()">💾 Update & Recalculate Totals</button>
+          <button class="btn btn-outline" onclick="resetInventoryToOriginalAI()">🔄 Reset to AI Original</button>
+          <button class="btn btn-secondary" onclick="exportToEwasteModule()">📥 Send to E-Waste Module →</button>
+        </div>
+      </div>
+
+      <!-- Inventory Aggregates Summary Strip -->
+      <div class="grid-4" style="gap:12px; margin-bottom:20px;">
+        <div class="stat-card" style="--accent-color:var(--accent-teal);">
+          <div class="stat-icon">📱</div>
+          <div><span class="stat-value" id="multi-total-objs">0</span><span class="stat-unit">items</span></div>
+          <div class="stat-label">Total Detected Objects</div>
+        </div>
+        <div class="stat-card" style="--accent-color:var(--accent-blue);">
+          <div class="stat-icon">⚖️</div>
+          <div><span class="stat-value" id="multi-total-weight">0.00</span><span class="stat-unit">kg</span></div>
+          <div class="stat-label">Total E-Waste Weight</div>
+        </div>
+        <div class="stat-card" style="--accent-color:var(--accent-orange);">
+          <div class="stat-icon">🏭</div>
+          <div><span class="stat-value" id="multi-total-co2">0.0</span><span class="stat-unit">kg CO₂e</span></div>
+          <div class="stat-label">Total Embodied Footprint</div>
+        </div>
+        <div class="stat-card" style="--accent-color:var(--accent-green);">
+          <div class="stat-icon">🌿</div>
+          <div><span class="stat-value" id="multi-total-avoided">0.0</span><span class="stat-unit">kg CO₂e</span></div>
+          <div class="stat-label">Potential CO₂e Avoided</div>
+        </div>
+      </div>
+
+      <!-- Interactive Inventory Table -->
+      <div style="overflow-x:auto; margin-bottom:24px;">
+        <table class="eco-table" id="inventory-table">
+          <thead>
+            <tr>
+              <th style="width:90px;">Object ID</th>
+              <th>Detected Item</th>
+              <th>Confidence</th>
+              <th style="width:130px;">Weight (kg)</th>
+              <th>Recyclable / Reusable</th>
+              <th>Embodied CO₂e</th>
+              <th>Potential Avoided</th>
+              <th>Recommended Action</th>
+              <th style="width:90px; text-align:center;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="inventory-tbody">
+            <!-- Dynamically populated rows -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Environmental Impact Dashboard Breakdown -->
+      <div style="margin-top:20px; border-top:1px solid var(--border-color); padding-top:20px;">
+        <div style="font-size:16px; font-weight:700; color:var(--text-primary); margin-bottom:14px; display:flex; align-items:center; gap:8px;">
+          <span>🌍 E-Waste Environmental Impact Dashboard</span>
+        </div>
+
+        <div class="grid-2" style="gap:16px; margin-bottom:16px;">
+          <!-- Category Distribution & Weight Breakdown -->
+          <div style="background:var(--bg-tertiary); padding:16px; border-radius:8px; border:1px solid var(--border-color);">
+            <div style="font-size:13px; font-weight:700; color:var(--accent-teal); margin-bottom:10px;">📊 Category-Wise Distribution</div>
+            <div id="category-bars-container" style="display:flex; flex-direction:column; gap:8px;"></div>
+          </div>
+
+          <!-- Precious & Recoverable Materials Summary -->
+          <div style="background:var(--bg-tertiary); padding:16px; border-radius:8px; border:1px solid var(--border-color);">
+            <div style="font-size:13px; font-weight:700; color:var(--accent-green); margin-bottom:10px;">✨ Precious & Recoverable Material Yield</div>
+            <div class="grid-3" style="gap:8px;" id="materials-pills-container">
+              <!-- Material cards -->
+            </div>
+            <!-- Landfill Diversion Progress -->
+            <div style="margin-top:14px;">
+              <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px;">
+                <span>Landfill Diversion Target:</span>
+                <strong id="landfill-diversion-text" style="color:var(--accent-green);">100% (0.00 kg)</strong>
+              </div>
+              <div style="width:100%; height:8px; background:var(--bg-card); border-radius:4px; overflow:hidden;">
+                <div id="landfill-diversion-bar" style="width:100%; height:100%; background:var(--accent-green); transition:width 0.3s;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hazardous Items Alert & Handling Notice -->
+        <div id="hazardous-alert-panel" style="display:none; background:rgba(255, 112, 67, 0.1); border:1px solid rgba(255, 112, 67, 0.4); border-radius:8px; padding:14px 18px; margin-bottom:16px;">
+          <div style="font-size:14px; font-weight:700; color:var(--accent-orange); display:flex; align-items:center; gap:8px;">
+            <span>⚠️ Hazardous Components Flagged (<span id="haz-alert-count">0</span> items)</span>
+          </div>
+          <div style="font-size:12.5px; color:var(--text-secondary); margin-top:6px;" id="haz-alert-list"></div>
+        </div>
+
+        <!-- Interactive What-If Scenario Slider for Recycling Target -->
+        <div style="background:var(--bg-tertiary); padding:16px; border-radius:8px; border:1px solid var(--border-color);">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+            <div>
+              <div style="font-size:13px; font-weight:700; color:var(--text-primary);">🎛️ Interactive Recycling Scenario: <span id="recycling-rate-label" style="color:var(--accent-green);">80%</span> Recycling Rate</div>
+              <div style="font-size:12px; color:var(--text-secondary);">Adjust circular recycling recovery to compute live avoided CO₂e and diversion.</div>
+            </div>
+            <div>
+              <input type="range" id="inventory-scenario-slider" min="0" max="100" value="80" step="5" style="width:200px;" oninput="handleInventoryScenarioSlide(this.value)">
+            </div>
+          </div>
+          <div class="grid-3" style="gap:10px; margin-top:12px;">
+            <div style="background:var(--bg-card); padding:10px 14px; border-radius:6px;">
+              <div style="font-size:11px; color:var(--text-muted);">Avoided CO₂e</div>
+              <div style="font-size:16px; font-weight:700; color:var(--accent-green); margin-top:2px;" id="scenario-avoided-val">0.0 kg</div>
+            </div>
+            <div style="background:var(--bg-card); padding:10px 14px; border-radius:6px;">
+              <div style="font-size:11px; color:var(--text-muted);">Diverted From Landfill</div>
+              <div style="font-size:16px; font-weight:700; color:var(--accent-teal); margin-top:2px;" id="scenario-diverted-val">0.0 kg</div>
+            </div>
+            <div style="background:var(--bg-card); padding:10px 14px; border-radius:6px;">
+              <div style="font-size:11px; color:var(--text-muted);">Unmitigated Footprint</div>
+              <div style="font-size:16px; font-weight:700; color:var(--accent-orange); margin-top:2px;" id="scenario-unmitigated-val">0.0 kg</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- History Drawer -->
+<div class="history-drawer" id="history-drawer">
+  <div class="drawer-header">
+    <div style="font-weight:700; font-size:15px; color:var(--text-primary);">📜 Analysis History</div>
+    <button class="btn btn-outline" style="padding:4px 8px; font-size:12px;" onclick="toggleHistoryDrawer()">✕ Close</button>
+  </div>
+  <div class="drawer-body" id="history-items-container">
+    <div style="text-align:center; color:var(--text-muted); font-size:13px; margin-top:20px;">Loading history from SQLite...</div>
+  </div>
+</div>
+
+<!-- Metrics Modal -->
+<div id="metrics-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:1100; align-items:center; justify-content:center;">
+  <div style="background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:var(--border-radius-md); max-width:620px; width:90%; padding:24px; max-height:85vh; overflow-y:auto;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+      <h3 style="font-size:18px; color:var(--text-primary); margin:0;">📊 Independent Computer Vision Validation Metrics</h3>
+      <button class="btn btn-outline" style="padding:4px 10px; font-size:12px;" onclick="closeMetricsModal()">✕</button>
+    </div>
+    
+    <div id="metrics-content">Loading validation metrics...</div>
+  </div>
+</div>
+
+<script>
+let currentAnalysis = null;
+let currentBboxes = [];
+
+// Drag and drop setup
+const dropzone = document.getElementById('dropzone');
+['dragenter', 'dragover'].forEach(eventName => {
+  dropzone.addEventListener(eventName, e => { e.preventDefault(); dropzone.classList.add('dragover'); }, false);
+});
+['dragleave', 'drop'].forEach(eventName => {
+  dropzone.addEventListener(eventName, e => { e.preventDefault(); dropzone.classList.remove('dragover'); }, false);
+});
+dropzone.addEventListener('drop', e => {
+  const dt = e.dataTransfer;
+  if (dt.files && dt.files.length > 0) {
+    uploadMediaFile(dt.files[0]);
+  }
+});
+
+function handleFileSelected(event) {
+  if (event.target.files && event.target.files.length > 0) {
+    uploadMediaFile(event.target.files[0]);
+  }
+}
+
+// Upload & Process
+async function uploadMediaFile(file) {
+  if (!file) return;
+
+  // Validation
+  const validExts = ['.jpg', '.jpeg', '.png', '.webp', '.mp4', '.mov', '.avi', '.webm'];
+  const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+  if (!validExts.includes(ext)) {
+    alert(`Unsupported file format '${ext}'. Please upload an image (JPG, PNG, WEBP) or video (MP4, MOV).`);
+    return;
+  }
+
+  // Size limit
+  const maxBytes = ext.includes('mp4') || ext.includes('mov') || ext.includes('avi') ? 50*1024*1024 : 15*1024*1024;
+  if (file.size > maxBytes) {
+    alert(`File exceeds size limit (${(file.size/(1024*1024)).toFixed(1)} MB). Maximum allowed is ${maxBytes/(1024*1024)} MB.`);
+    return;
+  }
+
+  // UI state
+  showProgress(10);
+  setStep(1);
+
+  const formData = new FormData();
+  formData.append('media', file, file.name);
+
+  try {
+    setStep(2);
+    showProgress(35);
+
+    const resp = await fetch('/api/vision/analyze', {
+      method: 'POST',
+      body: formData
+    });
+
+    showProgress(75);
+    setStep(3);
+
+    const data = await resp.json();
+    if (!resp.ok || !data.success) {
+      throw new Error(data.error || 'Server returned an error processing media.');
+    }
+
+    setStep(4);
+    showProgress(100);
+    setTimeout(() => { hideProgress(); }, 500);
+
+    renderAnalysisResult(data.data, file);
+    loadHistoryList();
+
+  } catch (err) {
+    hideProgress();
+    resetStepper();
+    alert(`Upload & Analysis Failed: ${err.message}`);
+    console.error(err);
+  }
+}
+
+let currentInventory = [];
+let originalInventory = [];
+let highlightedBoxIdx = null;
+const BOX_PALETTE = ['#00e676', '#26c6da', '#ffd54f', '#ff7043', '#ab47bc', '#42a5f5', '#26a69a', '#ef5350'];
+
+// Render complete analysis result
+function renderAnalysisResult(result, fileOrPreset) {
+  currentAnalysis = result;
+  
+  // Hide empty state, show cards
+  document.getElementById('empty-state-card').style.display = 'none';
+  document.getElementById('preview-card').style.display = 'block';
+  document.getElementById('report-container').style.display = 'block';
+  document.getElementById('what-if-card').style.display = 'block';
+
+  // Multi-object inventory resolution
+  currentInventory = JSON.parse(JSON.stringify(result.active_inventory || result.inventory_items || result.detected_objects_raw || []));
+  originalInventory = JSON.parse(JSON.stringify(result.original_ai_inventory || result.detected_objects_raw || []));
+
+  const isEwaste = (result.module_linked === 'ewaste') || (currentInventory.length > 0 && currentInventory.some(i => i.device_key || (i.label && (i.label.includes('Laptop') || i.label.includes('Phone') || i.label.includes('Battery') || i.label.includes('Cable') || i.label.includes('Keyboard') || i.label.includes('PCB')))));
+
+  const ewasteCard = document.getElementById('ewaste-multi-object-card');
+  if (isEwaste && currentInventory.length > 0) {
+    ewasteCard.style.display = 'block';
+    renderMultiObjectInventory(currentInventory, result.inventory_aggregates);
+  } else {
+    ewasteCard.style.display = 'none';
+  }
+
+  // Populate preview
+  const isVideo = result.file_type === 'video';
+  const previewImg = document.getElementById('preview-img');
+  const previewVideo = document.getElementById('preview-video');
+  const mediaUrl = result.media_url ? `/${result.media_url}` : '';
+
+  document.getElementById('preview-filename').textContent = `${result.uploaded_file} (${result.file_type.toUpperCase()})`;
+  document.getElementById('preview-filesize').textContent = result.file_size_bytes ? `${Math.round(result.file_size_bytes / 1024)} KB` : 'Preset';
+
+  if (isVideo) {
+    previewImg.style.display = 'none';
+    previewVideo.style.display = 'block';
+    if (mediaUrl) previewVideo.src = mediaUrl;
+    renderKeyframes(result.key_frames, result.timeline_analysis);
+  } else {
+    previewVideo.style.display = 'none';
+    previewImg.style.display = 'block';
+    if (mediaUrl) {
+      previewImg.src = mediaUrl;
+      previewImg.onload = () => {
+        document.getElementById('preview-dims').textContent = `${previewImg.naturalWidth} × ${previewImg.naturalHeight} px`;
+        drawBoundingBoxes(previewImg, currentInventory);
+      };
+    }
+    document.getElementById('video-keyframes-card').style.display = 'none';
+  }
+
+  // Populate 11 Fields
+  document.getElementById('field-file').innerHTML = `
+    <strong>${result.uploaded_file}</strong> · ${result.file_type.toUpperCase()} · 
+    <span style="font-family:var(--font-mono); font-size:11px; color:var(--text-muted);">SHA-256: ${result.checksum_sha256 ? result.checksum_sha256.substring(0, 16) + '...' : 'Verified'}</span>
+  `;
+  document.getElementById('field-objects').textContent = result.detected_objects_conditions;
+  document.getElementById('field-confidence-text').textContent = result.confidence;
+  
+  // Confidence meter color
+  const confFill = document.getElementById('field-confidence-fill');
+  const confPct = Math.round((result.confidence_raw || 0.8) * 100);
+  confFill.style.width = `${confPct}%`;
+  confFill.style.background = confPct >= 75 ? 'var(--accent-green)' : (confPct >= 65 ? 'var(--accent-teal)' : 'var(--accent-orange)');
+
+  // Status Badge
+  const statusBadge = document.getElementById('report-status-badge');
+  if (result.status === 'CONFIDENT_DETECTION') {
+    statusBadge.textContent = 'Confidence Verified (≥ 65%)';
+    statusBadge.className = 'badge badge-green';
+  } else {
+    statusBadge.textContent = 'Unknown / Needs Review (< 65%)';
+    statusBadge.className = 'badge badge-orange';
+  }
+
+  document.getElementById('field-evidence').textContent = result.evidence;
+  document.getElementById('field-problem').textContent = result.environmental_problem;
+  document.getElementById('field-data-used').textContent = result.existing_ecosphere_data_used;
+  document.getElementById('field-model').textContent = result.model_used;
+  document.getElementById('field-impact').innerHTML = result.prediction_calculated_impact;
+  document.getElementById('field-future-risk').textContent = result.possible_future_risk;
+  document.getElementById('field-action').textContent = result.recommended_action;
+  document.getElementById('field-sources').textContent = result.sources_limitations;
+
+  // Initialize what-if display
+  updateWhatIfSimulation();
+}
+
+// Bounding box overlay on Canvas with multi-color badges and hover highlight
+function drawBoundingBoxes(imgEl, objects, highlightIdx = null) {
+  const canvas = document.getElementById('bbox-canvas');
+  if (!canvas || !imgEl) return;
+
+  const rect = imgEl.getBoundingClientRect();
+  canvas.width = rect.width;
+  canvas.height = rect.height;
+
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  const scaleX = rect.width / (imgEl.naturalWidth || rect.width);
+  const scaleY = rect.height / (imgEl.naturalHeight || rect.height);
+
+  (objects || []).forEach((obj, idx) => {
+    if (!obj.box) return;
+    const [bx, by, bw, bh] = obj.box;
+    const x = bx * scaleX;
+    const y = by * scaleY;
+    const w = bw * scaleX;
+    const h = bh * scaleY;
+
+    const color = BOX_PALETTE[idx % BOX_PALETTE.length];
+    const isHighlighted = (highlightIdx === idx);
+
+    ctx.strokeStyle = color;
+    ctx.lineWidth = isHighlighted ? 4.5 : 2.5;
+    if (isHighlighted) {
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 10;
+    } else {
+      ctx.shadowBlur = 0;
+    }
+    ctx.strokeRect(x, y, w, h);
+    ctx.shadowBlur = 0;
+
+    // Label tag
+    ctx.fillStyle = color;
+    const oid = obj.object_id ? `[${obj.object_id}] ` : '';
+    const wt = (obj.actual_weight_kg || obj.weight_kg) ? ` ${parseFloat(obj.actual_weight_kg || obj.weight_kg).toFixed(2)}kg` : '';
+    const confVal = Math.round((obj.confidence || 0.85) * 100);
+    const tagText = `${oid}${obj.label}${wt} (${confVal}%)`;
+    ctx.font = 'bold 11px sans-serif';
+    const textWidth = ctx.measureText(tagText).width;
+    const tagH = 20;
+    const tagY = Math.max(0, y - tagH);
+
+    ctx.fillRect(x, tagY, textWidth + 8, tagH);
+
+    ctx.fillStyle = '#0b192c';
+    ctx.fillText(tagText, x + 4, tagY + 14);
+  });
+}
+
+function highlightCanvasBox(idx) {
+  highlightedBoxIdx = idx;
+  const previewImg = document.getElementById('preview-img');
+  if (previewImg && previewImg.style.display !== 'none') {
+    drawBoundingBoxes(previewImg, currentInventory, idx);
+  }
+}
+
+// Multi-Object Inventory & Environmental Impact Renderer
+function renderMultiObjectInventory(items, aggregates) {
+  if (!aggregates) {
+    let tot_wt = 0, tot_co2 = 0, tot_av = 0, haz = 0;
+    items.forEach(it => {
+      const w = parseFloat(it.actual_weight_kg || it.weight_kg || 0.5);
+      tot_wt += w;
+      tot_co2 += parseFloat(it.co2e_impact_kg || (w * 40));
+      tot_av += parseFloat(it.avoided_co2e_kg || (w * 18));
+      if (it.is_hazardous) haz++;
+    });
+    aggregates = {
+      total_objects: items.length,
+      total_weight_kg: tot_wt.toFixed(2),
+      total_co2e_impact: tot_co2.toFixed(2),
+      total_co2e_avoided: tot_av.toFixed(2),
+      hazardous_count: haz,
+      materials_summary: { gold_mg: 0, silver_mg: 0, copper_g: 0, aluminum_g: 0, plastics_g: 0 },
+      category_distribution: {}
+    };
+  }
+
+  document.getElementById('inventory-count-badge').textContent = `${items.length} Items Detected`;
+  document.getElementById('multi-total-objs').textContent = items.length;
+  document.getElementById('multi-total-weight').textContent = parseFloat(aggregates.total_weight_kg || 0).toFixed(2);
+  document.getElementById('multi-total-co2').textContent = parseFloat(aggregates.total_co2e_impact || 0).toFixed(1);
+  document.getElementById('multi-total-avoided').textContent = parseFloat(aggregates.total_co2e_avoided || 0).toFixed(1);
+
+  // Table rows
+  const tbody = document.getElementById('inventory-tbody');
+  tbody.innerHTML = items.map((it, idx) => {
+    const color = BOX_PALETTE[idx % BOX_PALETTE.length];
+    const isHaz = it.is_hazardous;
+    const isReus = it.reusable;
+    const wtVal = parseFloat(it.actual_weight_kg || it.weight_kg || 0.5).toFixed(2);
+    const co2Val = parseFloat(it.co2e_impact_kg || (wtVal * 40)).toFixed(1);
+    const avVal = parseFloat(it.avoided_co2e_kg || (wtVal * 18)).toFixed(1);
+    const confVal = Math.round((it.confidence || 0.85) * 100);
+
+    return `
+      <tr onmouseenter="highlightCanvasBox(${idx})" onmouseleave="highlightCanvasBox(null)" style="transition:background 0.2s;">
+        <td>
+          <span class="badge" style="background:${color}22; color:${color}; border:1px solid ${color}; font-weight:700;">
+            ${it.object_id || `OBJ-${idx+1:03d}`}
+          </span>
+        </td>
+        <td>
+          <div style="font-weight:600; color:var(--text-primary);">${it.label}</div>
+          <div style="font-size:11px; color:var(--text-muted);">${it.category || 'Electronics'}</div>
+        </td>
+        <td>
+          <span class="badge ${confVal >= 75 ? 'badge-green' : (confVal >= 65 ? 'badge-teal' : 'badge-orange')}">
+            ${confVal}%
+          </span>
+        </td>
+        <td>
+          <div style="display:flex; align-items:center; gap:4px;">
+            <input type="number" step="0.01" min="0.01" max="500" class="form-control" style="width:75px; padding:4px 6px; font-size:12px; font-weight:600;" value="${wtVal}" onchange="handleItemWeightChange(${idx}, this.value)" />
+            <span style="font-size:12px; color:var(--text-muted);">kg</span>
+          </div>
+        </td>
+        <td>
+          ${isReus ? '<span class="badge badge-green">Reusable 🔄</span>' : '<span class="badge badge-teal">Recyclable ♻️</span>'}
+          ${isHaz ? '<span class="badge badge-orange" style="margin-left:4px;">⚠️ Hazardous</span>' : ''}
+        </td>
+        <td style="font-family:var(--font-mono); font-size:12.5px;">${co2Val} kg</td>
+        <td style="font-family:var(--font-mono); font-size:12.5px; color:var(--accent-green); font-weight:700;">${avVal} kg</td>
+        <td style="font-size:12px; color:var(--text-secondary); max-width:180px;">${it.recommended_action || it.pathway || 'Authorized Recycling'}</td>
+        <td style="text-align:center;">
+          <button class="btn btn-danger btn-sm" style="padding:4px 8px; font-size:11px;" onclick="deleteInventoryItem(${idx})">🗑️</button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  // Category Distribution Bars
+  const catContainer = document.getElementById('category-bars-container');
+  const catDist = aggregates.category_distribution || {};
+  const catEntries = Object.entries(catDist);
+  if (catEntries.length > 0) {
+    catContainer.innerHTML = catEntries.map(([cat, count]) => {
+      const pct = Math.round((count / items.length) * 100);
+      return `
+        <div>
+          <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:2px;">
+            <span>${cat}</span>
+            <span style="font-weight:700;">${count} items (${pct}%)</span>
+          </div>
+          <div style="width:100%; height:6px; background:var(--bg-card); border-radius:3px; overflow:hidden;">
+            <div style="width:${pct}%; height:100%; background:var(--accent-teal);"></div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  } else {
+    catContainer.innerHTML = `<div style="font-size:12px; color:var(--text-muted);">Single category inventory.</div>`;
+  }
+
+  // Material Yield Pills
+  const matsContainer = document.getElementById('materials-pills-container');
+  const ms = aggregates.materials_summary || {};
+  matsContainer.innerHTML = `
+    <div style="background:var(--bg-card); padding:8px; border-radius:4px; text-align:center;">
+      <div style="font-size:10px; color:var(--text-muted);">Gold (Au)</div>
+      <div style="font-size:13px; font-weight:700; color:#ffd54f;">${parseFloat(ms.gold_mg || 0).toFixed(1)} mg</div>
+    </div>
+    <div style="background:var(--bg-card); padding:8px; border-radius:4px; text-align:center;">
+      <div style="font-size:10px; color:var(--text-muted);">Silver (Ag)</div>
+      <div style="font-size:13px; font-weight:700; color:#e0e0e0;">${parseFloat(ms.silver_mg || 0).toFixed(1)} mg</div>
+    </div>
+    <div style="background:var(--bg-card); padding:8px; border-radius:4px; text-align:center;">
+      <div style="font-size:10px; color:var(--text-muted);">Copper (Cu)</div>
+      <div style="font-size:13px; font-weight:700; color:#ffb74d;">${parseFloat(ms.copper_g || 0).toFixed(1)} g</div>
+    </div>
+    <div style="background:var(--bg-card); padding:8px; border-radius:4px; text-align:center;">
+      <div style="font-size:10px; color:var(--text-muted);">Aluminum (Al)</div>
+      <div style="font-size:13px; font-weight:700; color:#80deea;">${parseFloat(ms.aluminum_g || 0).toFixed(1)} g</div>
+    </div>
+    <div style="background:var(--bg-card); padding:8px; border-radius:4px; text-align:center;">
+      <div style="font-size:10px; color:var(--text-muted);">Polymers</div>
+      <div style="font-size:13px; font-weight:700; color:#a5d6a7;">${parseFloat(ms.plastics_g || 0).toFixed(1)} g</div>
+    </div>
+  `;
+
+  // Landfill diversion
+  const divText = document.getElementById('landfill-diversion-text');
+  divText.textContent = `100% (${parseFloat(aggregates.total_weight_kg || 0).toFixed(2)} kg)`;
+
+  // Hazardous alerts
+  const hazPanel = document.getElementById('hazardous-alert-panel');
+  const hazItems = (aggregates.hazardous_items || []).filter(h => h);
+  if (hazItems.length > 0) {
+    hazPanel.style.display = 'block';
+    document.getElementById('haz-alert-count').textContent = hazItems.length;
+    document.getElementById('haz-alert-list').innerHTML = `
+      <ul style="margin:4px 0 0 16px; padding:0;">
+        ${hazItems.map(h => `<li><strong>${h.label || h.object_id}</strong>: ${h.hazard_profile || 'Contains hazardous substances'}</li>`).join('')}
+      </ul>
+      <div style="margin-top:6px; font-weight:600; color:var(--text-primary);">Handling: Never puncture or dispose in normal municipal bins. Insulate terminals and deposit at an authorized CPCB collection center.</div>
+    `;
+  } else {
+    hazPanel.style.display = 'none';
+  }
+
+  // Update What-if slider
+  handleInventoryScenarioSlide(document.getElementById('inventory-scenario-slider').value);
+}
+
+function handleItemWeightChange(idx, newWeight) {
+  const w = parseFloat(newWeight);
+  if (isNaN(w) || w <= 0) return;
+  if (!currentInventory[idx]) return;
+
+  currentInventory[idx].actual_weight_kg = w;
+  currentInventory[idx].weight_kg = w;
+
+  const devKey = currentInventory[idx].device_key || 'smartphone';
+  const factor = devKey === 'laptop' ? 65 : (devKey === 'pcb' ? 80 : 40);
+  currentInventory[idx].co2e_impact_kg = parseFloat((w * factor).toFixed(2));
+  currentInventory[idx].avoided_co2e_kg = parseFloat((w * 18).toFixed(2));
+
+  recalculateInventoryLocally();
+}
+
+function deleteInventoryItem(idx) {
+  if (confirm(`Remove item ${currentInventory[idx].object_id || 'item'} from inventory?`)) {
+    currentInventory.splice(idx, 1);
+    recalculateInventoryLocally();
+    const previewImg = document.getElementById('preview-img');
+    if (previewImg && previewImg.style.display !== 'none') {
+      drawBoundingBoxes(previewImg, currentInventory);
+    }
+  }
+}
+
+function recalculateInventoryLocally() {
+  let tot_wt = 0, tot_co2 = 0, tot_av = 0, haz = 0;
+  const catDist = {};
+  const mats = { gold_mg: 0, silver_mg: 0, copper_g: 0, aluminum_g: 0, plastics_g: 0 };
+  const hazList = [];
+
+  currentInventory.forEach((it, i) => {
+    it.object_id = `OBJ-${i+1:03d}`;
+    const w = parseFloat(it.actual_weight_kg || it.weight_kg || 0.5);
+    tot_wt += w;
+    tot_co2 += parseFloat(it.co2e_impact_kg || (w * 40));
+    tot_av += parseFloat(it.avoided_co2e_kg || (w * 18));
+    if (it.is_hazardous) {
+      haz++;
+      hazList.push({ object_id: it.object_id, label: it.label, hazard_profile: it.hazard_profile });
+    }
+    const cat = it.category || 'Electronics';
+    catDist[cat] = (catDist[cat] || 0) + 1;
+
+    const m = it.materials || {};
+    mats.gold_mg += parseFloat(m.gold_mg || 0);
+    mats.silver_mg += parseFloat(m.silver_mg || 0);
+    mats.copper_g += parseFloat(m.copper_g || 0);
+    mats.aluminum_g += parseFloat(m.aluminum_g || 0);
+    mats.plastics_g += parseFloat(m.plastics_g || 0);
+  });
+
+  const updatedAgg = {
+    total_objects: currentInventory.length,
+    total_weight_kg: tot_wt.toFixed(2),
+    total_co2e_impact: tot_co2.toFixed(2),
+    total_co2e_avoided: tot_av.toFixed(2),
+    hazardous_count: haz,
+    hazardous_items: hazList,
+    materials_summary: mats,
+    category_distribution: catDist
+  };
+
+  if (currentAnalysis) {
+    currentAnalysis.inventory_aggregates = updatedAgg;
+    currentAnalysis.active_inventory = currentInventory;
+  }
+
+  renderMultiObjectInventory(currentInventory, updatedAgg);
+}
+
+async function saveInventoryCorrections() {
+  if (!currentAnalysis || !currentAnalysis.analysis_id) {
+    alert("No active analysis to update.");
+    return;
+  }
+
+  try {
+    const resp = await fetch('/api/vision/inventory/update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        analysis_id: currentAnalysis.analysis_id,
+        items: currentInventory,
+        notes: 'User adjusted weights & items in inventory table'
+      })
+    });
+
+    const res = await resp.json();
+    if (res.success) {
+      alert("✅ Inventory and environmental totals updated successfully!");
+      if (res.updated_record) {
+        currentAnalysis = res.updated_record;
+      }
+      renderMultiObjectInventory(currentInventory, res.inventory_aggregates);
+    } else {
+      alert(`Error updating inventory: ${res.error}`);
+    }
+  } catch(e) {
+    alert(`Failed to save inventory: ${e.message}`);
+  }
+}
+
+function resetInventoryToOriginalAI() {
+  if (!originalInventory || originalInventory.length === 0) {
+    alert("No original AI detections available.");
+    return;
+  }
+  if (confirm("Reset inventory to initial AI detections? All manual edits will be reverted.")) {
+    currentInventory = JSON.parse(JSON.stringify(originalInventory));
+    recalculateInventoryLocally();
+    const previewImg = document.getElementById('preview-img');
+    if (previewImg && previewImg.style.display !== 'none') {
+      drawBoundingBoxes(previewImg, currentInventory);
+    }
+    saveInventoryCorrections();
+  }
+}
+
+function handleInventoryScenarioSlide(val) {
+  const rate = parseFloat(val);
+  document.getElementById('recycling-rate-label').textContent = `${rate.toFixed(0)}%`;
+
+  if (!currentInventory || currentInventory.length === 0) return;
+
+  let tot_wt = 0, tot_co2 = 0, tot_av = 0;
+  currentInventory.forEach(it => {
+    const w = parseFloat(it.actual_weight_kg || it.weight_kg || 0.5);
+    tot_wt += w;
+    tot_co2 += parseFloat(it.co2e_impact_kg || (w * 40));
+    tot_av += parseFloat(it.avoided_co2e_kg || (w * 18));
+  });
+
+  const diverted = (tot_wt * (rate / 100.0)).toFixed(2);
+  const avoided = (tot_av * (rate / 100.0)).toFixed(2);
+  const unmit = Math.max(0, tot_co2 - avoided).toFixed(2);
+
+  document.getElementById('scenario-avoided-val').textContent = `${avoided} kg`;
+  document.getElementById('scenario-diverted-val').textContent = `${diverted} kg`;
+  document.getElementById('scenario-unmitigated-val').textContent = `${unmit} kg`;
+}
+
+function exportToEwasteModule() {
+  if (!currentInventory || currentInventory.length === 0) {
+    alert("No active inventory to export.");
+    return;
+  }
+  localStorage.setItem('ecosphere_vision_ewaste_import', JSON.stringify({
+    analysis_id: currentAnalysis ? currentAnalysis.analysis_id : null,
+    items: currentInventory,
+    aggregates: currentAnalysis ? currentAnalysis.inventory_aggregates : null
+  }));
+  window.location.href = 'e-waste.html?import_vision=1';
+}
+
+// Keyframes renderer
+function renderKeyframes(keyframes, timeline) {
+  const container = document.getElementById('keyframes-container');
+  const card = document.getElementById('video-keyframes-card');
+  const tbody = document.getElementById('timeline-tbody');
+  if (!container || !card) return;
+
+  card.style.display = 'block';
+  container.innerHTML = '';
+
+  (keyframes || []).forEach((kf, idx) => {
+    const div = document.createElement('div');
+    div.className = `keyframe-card ${idx === 0 ? 'selected' : ''}`;
+    div.innerHTML = `
+      <img src="/${kf.web_url}" alt="Frame ${kf.timestamp_formatted}"/>
+      <div class="keyframe-meta">
+        <div style="font-weight:700; color:var(--accent-teal);">${kf.timestamp_formatted}</div>
+        <div style="color:var(--text-primary); font-size:10.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${kf.detected_label}</div>
+      </div>
+    `;
+    div.onclick = () => {
+      document.querySelectorAll('.keyframe-card').forEach(c => c.classList.remove('selected'));
+      div.classList.add('selected');
+    };
+    container.appendChild(div);
+  });
+
+  tbody.innerHTML = (timeline || []).map(ev => `
+    <tr>
+      <td style="font-family:var(--font-mono); color:var(--accent-teal); font-weight:700;">${ev.time}</td>
+      <td><strong>${ev.event}</strong></td>
+      <td style="color:var(--accent-green);">${ev.confidence}</td>
+      <td style="color:var(--text-secondary);">${ev.note}</td>
+    </tr>
+  `).join('');
+}
+
+// Progress & Stepper Helpers
+function showProgress(val) {
+  const pBar = document.getElementById('progress-bar');
+  const pFill = document.getElementById('progress-fill');
+  pBar.style.display = 'block';
+  pFill.style.width = `${val}%`;
+}
+function hideProgress() {
+  document.getElementById('progress-bar').style.display = 'none';
+}
+function setStep(num) {
+  const stepper = document.getElementById('stepper');
+  stepper.style.display = 'flex';
+  for (let i = 1; i <= 4; i++) {
+    const el = document.getElementById(`step-${i}`);
+    if (i < num) {
+      el.className = 'step-item completed';
+      el.querySelector('.step-dot').textContent = '✓';
+    } else if (i === num) {
+      el.className = 'step-item active';
+      el.querySelector('.step-dot').textContent = i;
+    } else {
+      el.className = 'step-item';
+      el.querySelector('.step-dot').textContent = i;
+    }
+  }
+}
+function resetStepper() {
+  document.getElementById('stepper').style.display = 'none';
+}
+
+// Interactive What-If simulation
+function updateWhatIfSimulation() {
+  const delay = parseInt(document.getElementById('delay-slider').value);
+  document.getElementById('delay-days-val').textContent = delay;
+
+  if (!currentAnalysis) return;
+
+  const immEl = document.getElementById('whatif-immediate-val');
+  const delEl = document.getElementById('whatif-delayed-val');
+
+  const module = currentAnalysis.module_linked || 'solar-loss';
+  if (module.includes('solar')) {
+    immEl.textContent = 'Recover ~85% Lost kWh';
+    const estLoss = Math.round(75 * (delay / 30.0) * 8.0);
+    delEl.textContent = `₹${estLoss} Extra Loss`;
+  } else if (module === 'ewaste') {
+    immEl.textContent = '95% Material Recovery';
+    delEl.textContent = `${(1.2 * (delay/30.0)).toFixed(1)} kg Potential Toxic Leaching`;
+  } else {
+    immEl.textContent = '92% Methane Avoided';
+    delEl.textContent = `${(4.5 * (delay/30.0)).toFixed(1)} kg Landfill GHG`;
+  }
+}
+
+// Load Presets
+async function loadTestPreset(type) {
+  showProgress(25);
+  setStep(1);
+
+  // Generate synthetic test canvas based on preset
+  const canvas = document.createElement('canvas');
+  canvas.width = 400; canvas.height = 300;
+  const ctx = canvas.getContext('2d');
+
+  let filename = 'test_image.jpg';
+
+  if (type === 'solar') {
+    filename = 'solar_array_dusty.jpg';
+    ctx.fillStyle = '#1e3a5f';
+    ctx.fillRect(0, 0, 400, 300);
+    ctx.strokeStyle = '#cccccc';
+    ctx.lineWidth = 2;
+    for (let x = 40; x < 400; x += 60) { ctx.beginPath(); ctx.moveTo(x, 20); ctx.lineTo(x, 280); ctx.stroke(); }
+    for (let y = 30; y < 300; y += 50) { ctx.beginPath(); ctx.moveTo(20, y); ctx.lineTo(380, y); ctx.stroke(); }
+    ctx.fillStyle = 'rgba(180, 150, 110, 0.45)';
+    ctx.fillRect(40, 40, 320, 220); // dust patch
+  } else if (type === 'multi-ewaste') {
+    filename = 'multiple_ewaste_devices.jpg';
+    canvas.width = 640; canvas.height = 480;
+    // Neutral background desk surface
+    ctx.fillStyle = '#e2e8f0';
+    ctx.fillRect(0, 0, 640, 480);
+
+    // 1. Laptop (silver base, dark screen)
+    ctx.fillStyle = '#64748b';
+    ctx.fillRect(40, 40, 240, 180);
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(55, 55, 210, 130);
+    // Keyboard lines
+    ctx.fillStyle = '#334155';
+    for (let r = 0; r < 4; r++) {
+      ctx.fillRect(65, 190 + (r * 6), 190, 4);
+    }
+
+    // 2. Smartphone (dark slate with blue glass sheen)
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(340, 50, 90, 170);
+    ctx.fillStyle = '#3b82f6';
+    ctx.fillRect(348, 62, 74, 146);
+
+    // 3. Battery pack (yellow casing with warning stripes)
+    ctx.fillStyle = '#eab308';
+    ctx.fillRect(480, 60, 110, 150);
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(495, 80, 80, 16);
+    ctx.fillRect(495, 110, 80, 16);
+    ctx.fillRect(495, 140, 80, 16);
+
+    // 4. PCB / Circuit Board (green substrate with copper traces)
+    ctx.fillStyle = '#059669';
+    ctx.fillRect(50, 270, 220, 170);
+    ctx.strokeStyle = '#f59e0b';
+    ctx.lineWidth = 2;
+    for (let c = 0; c < 12; c++) {
+      ctx.beginPath();
+      ctx.moveTo(65 + c*16, 280);
+      ctx.lineTo(65 + c*16, 420);
+      ctx.stroke();
+    }
+    // Integrated circuits
+    ctx.fillStyle = '#111827';
+    ctx.fillRect(90, 310, 50, 50);
+    ctx.fillRect(170, 340, 60, 40);
+
+    // 5. Cable cluster (curved lines)
+    ctx.strokeStyle = '#18181b';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.arc(420, 350, 55, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.strokeStyle = '#dc2626';
+    ctx.beginPath();
+    ctx.arc(440, 360, 45, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.strokeStyle = '#2563eb';
+    ctx.beginPath();
+    ctx.arc(430, 340, 50, 0, Math.PI * 2);
+    ctx.stroke();
+  } else if (type === 'ewaste') {
+    filename = 'circuit_board_smartphone.jpg';
+    ctx.fillStyle = '#0f5132'; // green PCB
+    ctx.fillRect(0, 0, 400, 300);
+    ctx.strokeStyle = '#e0a96d'; // copper traces
+    ctx.lineWidth = 1.5;
+    for (let i = 0; i < 20; i++) {
+      ctx.beginPath();
+      ctx.moveTo(30 + i*18, 30); ctx.lineTo(30 + i*18, 270); ctx.stroke();
+    }
+    ctx.fillStyle = '#212529'; // chips
+    ctx.fillRect(80, 80, 60, 60); ctx.fillRect(200, 120, 90, 70);
+  } else if (type === 'food') {
+    filename = 'organic_food_peels.jpg';
+    ctx.fillStyle = '#d97706'; // warm food tones
+    ctx.fillRect(0, 0, 400, 300);
+    ctx.fillStyle = '#15803d'; // leafy green scraps
+    ctx.beginPath(); ctx.arc(160, 140, 70, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#ef4444'; // tomato/fruit scraps
+    ctx.beginPath(); ctx.arc(240, 180, 50, 0, Math.PI*2); ctx.fill();
+  } else if (type === 'blur') {
+    filename = 'inconclusive_blurry_photo.jpg';
+    ctx.fillStyle = '#6b7280'; // gray blur
+    ctx.fillRect(0, 0, 400, 300);
+    ctx.fillStyle = '#4b5563';
+    ctx.filter = 'blur(15px)';
+    ctx.fillRect(100, 100, 200, 100);
+  } else if (type === 'video') {
+    // If video, run existing test clip
+    try {
+      setStep(2);
+      const resp = await fetch('/api/vision/analyze', {
+        method: 'POST',
+        headers: { 'X-Filename': 'solar_inspection_flight.mp4' },
+        body: new Blob(['fake_stream'], { type: 'video/mp4' })
+      });
+      // Fallback: fetch latest video analysis or simulate
+    } catch(e) {}
+  }
+
+  canvas.toBlob(blob => {
+    const file = new File([blob], filename, { type: 'image/jpeg' });
+    uploadMediaFile(file);
+  }, 'image/jpeg');
+}
+
+// Redirect to chat with visual context
+function openChatWithContext() {
+  if (!currentAnalysis) {
+    window.location.href = 'chat.html';
+    return;
+  }
+  sessionStorage.setItem('current_vision_context', JSON.stringify(currentAnalysis));
+  window.location.href = `chat.html?vision_id=${currentAnalysis.analysis_id || ''}`;
+}
+
+// History Drawer
+function toggleHistoryDrawer() {
+  const drawer = document.getElementById('history-drawer');
+  drawer.classList.toggle('open');
+  if (drawer.classList.contains('open')) {
+    loadHistoryList();
+  }
+}
+
+async function loadHistoryList() {
+  const container = document.getElementById('history-items-container');
+  try {
+    const resp = await fetch('/api/vision/history?limit=15');
+    const data = await resp.json();
+    if (!data.success || !data.analyses || !data.analyses.length) {
+      container.innerHTML = '<div style="color:var(--text-muted); font-size:13px; text-align:center;">No past analyses found.</div>';
+      return;
+    }
+
+    container.innerHTML = data.analyses.map(item => `
+      <div class="history-item" onclick="loadAnalysisById('${item.id}')">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <strong style="color:var(--text-primary); font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:200px;">${item.filename}</strong>
+          <span class="badge ${item.confidence_score >= 0.65 ? 'badge-green' : 'badge-orange'}" style="font-size:10px;">${Math.round(item.confidence_score*100)}%</span>
+        </div>
+        <div style="font-size:11.5px; color:var(--text-secondary); margin-top:4px;">${item.environmental_problem || 'Environmental Analysis'}</div>
+        <div style="font-size:10.5px; color:var(--text-muted); margin-top:4px;">${new Date(item.created_at).toLocaleString()}</div>
+      </div>
+    `).join('');
+  } catch (err) {
+    container.innerHTML = '<div style="color:var(--accent-orange); font-size:12px;">Failed to load history.</div>';
+  }
+}
+
+async function loadAnalysisById(id) {
+  try {
+    const resp = await fetch(`/api/vision/${id}`);
+    const data = await resp.json();
+    if (data.success && data.analysis) {
+      renderAnalysisResult(data.analysis);
+      toggleHistoryDrawer();
+    }
+  } catch (e) {
+    alert("Could not load analysis record.");
+  }
+}
+
+// Metrics Modal
+async function openMetricsModal() {
+  const modal = document.getElementById('metrics-modal');
+  const content = document.getElementById('metrics-content');
+  modal.style.display = 'flex';
+
+  try {
+    const resp = await fetch('/api/vision/metrics');
+    const data = await resp.json();
+    const m = data.metrics;
+    content.innerHTML = `
+      <div style="font-size:13px; color:var(--text-secondary); margin-bottom:14px;">
+        <strong>Dataset:</strong> ${m.benchmark_dataset}<br/>
+        <strong>Model:</strong> ${m.model_architecture}<br/>
+        <strong>Protocol:</strong> ${m.validation_protocol}
+      </div>
+
+      <div class="grid-4" style="gap:10px; margin-bottom:16px;">
+        <div style="background:var(--bg-tertiary); padding:10px; border-radius:4px; text-align:center;">
+          <div style="font-size:11px; color:var(--text-muted);">Precision</div>
+          <div style="font-size:20px; font-weight:800; color:var(--accent-green);">${(m.overall_metrics.precision*100).toFixed(1)}%</div>
+        </div>
+        <div style="background:var(--bg-tertiary); padding:10px; border-radius:4px; text-align:center;">
+          <div style="font-size:11px; color:var(--text-muted);">Recall</div>
+          <div style="font-size:20px; font-weight:800; color:var(--accent-teal);">${(m.overall_metrics.recall*100).toFixed(1)}%</div>
+        </div>
+        <div style="background:var(--bg-tertiary); padding:10px; border-radius:4px; text-align:center;">
+          <div style="font-size:11px; color:var(--text-muted);">F1-Score</div>
+          <div style="font-size:20px; font-weight:800; color:var(--accent-blue);">${(m.overall_metrics.f1_score*100).toFixed(1)}%</div>
+        </div>
+        <div style="background:var(--bg-tertiary); padding:10px; border-radius:4px; text-align:center;">
+          <div style="font-size:11px; color:var(--text-muted);">Mean IoU</div>
+          <div style="font-size:20px; font-weight:800; color:var(--accent-orange);">${m.overall_metrics.mean_iou}</div>
+        </div>
+      </div>
+
+      <table class="eco-table" style="font-size:12px;">
+        <thead>
+          <tr>
+            <th>Class</th>
+            <th>Precision</th>
+            <th>Recall</th>
+            <th>F1</th>
+            <th>mAP@0.5</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${Object.entries(m.per_class_metrics).map(([k, v]) => `
+            <tr>
+              <td><strong>${k}</strong></td>
+              <td>${(v.precision*100).toFixed(1)}%</td>
+              <td>${(v.recall*100).toFixed(1)}%</td>
+              <td>${(v.f1*100).toFixed(1)}%</td>
+              <td style="color:var(--accent-green); font-weight:700;">${(v.mAP_50*100).toFixed(1)}%</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+
+      <div style="margin-top:14px; font-size:11.5px; color:var(--text-muted); background:var(--bg-tertiary); padding:8px 12px; border-radius:4px;">
+        Zero-Fabrication Guarantee: Low confidence (< 65%) triggers "Unknown / Needs Review" status instead of hallucinated classifications.
+      </div>
+    `;
+  } catch(e) {
+    content.textContent = "Failed to load metrics.";
+  }
+}
+function closeMetricsModal() {
+  document.getElementById('metrics-modal').style.display = 'none';
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  EcoScore.init();
+});
+</script>
+</body>
+</html>

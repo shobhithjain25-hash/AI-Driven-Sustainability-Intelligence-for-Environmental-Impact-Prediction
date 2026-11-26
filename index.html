@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>EcoSphere – Sustainability Intelligence Platform</title>
+<link rel="stylesheet" href="styles.css"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+<style>
+.hero-section {
+  background: linear-gradient(135deg, #0d1f35 0%, #0a2a1a 100%);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 48px 40px;
+  display: flex;
+  align-items: center;
+  gap: 48px;
+  margin-bottom: 32px;
+  position: relative;
+  overflow: hidden;
+}
+.hero-section::before {
+  content: '';
+  position: absolute;
+  top: -60px; right: -60px;
+  width: 280px; height: 280px;
+  background: radial-gradient(circle, rgba(0,230,118,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+.hero-text h2 {
+  font-size: 36px;
+  font-weight: 800;
+  line-height: 1.2;
+  margin-bottom: 12px;
+}
+.hero-text p {
+  font-size: 15px;
+  color: var(--text-secondary);
+  max-width: 520px;
+  line-height: 1.7;
+}
+.hero-stats {
+  display: flex;
+  gap: 32px;
+  margin-top: 24px;
+}
+.hero-stat .hs-val {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--accent-green);
+}
+.hero-stat .hs-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.big-eco-score {
+  text-align: center;
+  flex-shrink: 0;
+}
+.big-eco-score .circle {
+  width: 140px; height: 140px;
+  border-radius: 50%;
+  border: 4px solid rgba(0,230,118,0.4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,230,118,0.06);
+  margin: 0 auto 10px;
+  position: relative;
+}
+.big-eco-score .circle::after {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border-radius: 50%;
+  border: 2px solid rgba(0,230,118,0.15);
+}
+.big-eco-score .score-num {
+  font-size: 42px;
+  font-weight: 900;
+  color: var(--accent-green);
+  line-height: 1;
+}
+.big-eco-score .score-of {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.big-eco-score .score-lbl {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+.module-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin-bottom: 32px;
+}
+.module-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 24px;
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
+}
+.module-card::before {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--mod-color, var(--accent-green));
+  transform: scaleX(0);
+  transition: transform 0.25s ease;
+}
+.module-card:hover {
+  border-color: rgba(0,191,165,0.4);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.3);
+}
+.module-card:hover::before { transform: scaleX(1); }
+.module-card .mc-icon {
+  font-size: 36px;
+  line-height: 1;
+}
+.module-card .mc-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.module-card .mc-desc {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+.module-card .mc-cta {
+  margin-top: auto;
+  font-size: 12px;
+  color: var(--accent-teal);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.section-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.section-title .dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--accent-green);
+}
+@media (max-width: 900px) {
+  .hero-section { flex-direction: column; gap: 24px; }
+  .module-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 600px) {
+  .module-grid { grid-template-columns: 1fr; }
+  .hero-stats { flex-wrap: wrap; gap: 16px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Sidebar Mount -->
+<div id="sidebar-mount"></div>
+
+<!-- Main -->
+<div class="main-content">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:16px;">
+      <button class="menu-btn" id="menu-btn">☰</button>
+      <div class="topbar-title">
+        <h2>🌍 EcoSphere Dashboard</h2>
+        <p>Your unified environmental intelligence hub</p>
+      </div>
+    </div>
+    <div class="eco-score-badge">
+      <span class="score-label">Overall EcoScore</span>
+      <span class="score-value" id="eco-score-val">--</span>
+    </div>
+  </div>
+
+  <div class="page-body">
+
+    <!-- Hero -->
+    <div class="hero-section">
+      <div class="hero-text">
+        <h2 class="gradient-text">AI-Driven Sustainability Intelligence</h2>
+        <p>EcoSphere unifies six environmental modules powered by Machine Learning and Deep Learning (TensorFlow.js). Benchmark Linear Regression, Polynomial Regression, and Deep Neural Networks evaluated by R² score and MAPE to select the optimal model.</p>
+        <div class="hero-stats">
+          <div class="hero-stat">
+            <div class="hs-val">6</div>
+            <div class="hs-label">Modules</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hs-val">3</div>
+            <div class="hs-label">AI Models / Module</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hs-val">R² + MAPE</div>
+            <div class="hs-label">Metric Selection</div>
+          </div>
+        </div>
+      </div>
+      <div class="big-eco-score">
+        <div class="circle">
+          <span class="score-num" id="big-score-val">--</span>
+          <span class="score-of">/100</span>
+        </div>
+        <div class="score-lbl">Your EcoScore</div>
+        <p style="font-size:11px;color:var(--text-muted);margin-top:6px;max-width:130px;">Use the modules below to generate your score</p>
+      </div>
+    </div>
+
+    <!-- Modules grid -->
+    <div class="section-title"><div class="dot"></div> Sustainability Modules</div>
+    <div class="module-grid">
+      <a class="module-card" href="carbon-footprint.html" style="--mod-color:#ef9a9a;">
+        <div class="mc-icon">🌫️</div>
+        <div class="mc-title">Carbon Footprint Platform</div>
+        <div class="mc-desc">Calculate your personal CO₂ emissions from transport, home energy, diet, and shopping. Get a monthly breakdown and reduction tips.</div>
+        <div class="mc-cta">Open Module →</div>
+      </a>
+      <a class="module-card" href="solar-loss.html" style="--mod-color:#fff176;">
+        <div class="mc-icon">🔋</div>
+        <div class="mc-title">Solar Performance Loss Predictor</div>
+        <div class="mc-desc">Estimate performance degradation in your solar panels based on age, dust, shading, and temperature conditions.</div>
+        <div class="mc-cta">Open Module →</div>
+      </a>
+      <a class="module-card" href="e-waste.html" style="--mod-color:#80cbc4;">
+        <div class="mc-icon">♻️</div>
+        <div class="mc-title">E-Waste Collection & Recycling</div>
+        <div class="mc-desc">Log electronic devices for recycling. Find nearby drop-off centers and see the environmental impact of proper disposal.</div>
+        <div class="mc-cta">Open Module →</div>
+      </a>
+      <a class="module-card" href="air-quality.html" style="--mod-color:#90caf9;">
+        <div class="mc-icon">💨</div>
+        <div class="mc-title">Air Quality Prediction</div>
+        <div class="mc-desc">Predict AQI and pollutant levels for your city based on weather conditions, season, and historical patterns.</div>
+        <div class="mc-cta">Open Module →</div>
+      </a>
+      <a class="module-card" href="solar-energy.html" style="--mod-color:#ffcc80;">
+        <div class="mc-icon">☀️</div>
+        <div class="mc-title">Solar Energy Prediction</div>
+        <div class="mc-desc">Forecast monthly and daily solar energy generation based on panel specifications, location, and tilt angle.</div>
+        <div class="mc-cta">Open Module →</div>
+      </a>
+      <a class="module-card" href="food-waste.html" style="--mod-color:#a5d6a7;">
+        <div class="mc-icon">🥦</div>
+        <div class="mc-title">Food Waste Prediction</div>
+        <div class="mc-desc">Estimate weekly household food waste, associated CO₂ emissions, and financial cost with personalised reduction strategies.</div>
+        <div class="mc-cta">Open Module →</div>
+      </a>
+      <a class="module-card" href="vision-ai.html" style="--mod-color:#38bdf8;">
+        <div class="mc-icon">👁️</div>
+        <div class="mc-title">Multimodal Environmental Vision AI</div>
+        <div class="mc-desc">Upload solar panel, e-waste, food waste, or pollution images & videos. Automated computer vision detection, physical impact quantification, and what-if simulation.</div>
+        <div class="mc-cta">Open Vision AI →</div>
+      </a>
+      <a class="module-card" href="chat.html" style="--mod-color:#22c55e;">
+        <div class="mc-icon">🤖</div>
+        <div class="mc-title">AI Sustainability Suggestion Chatbot</div>
+        <div class="mc-desc">Generative AI + Agentic AI assistant analyzing your data across all 6 modules with Problem → Evidence → Prediction → Recommendation → What-If → Sources framework.</div>
+        <div class="mc-cta">Open AI Chatbot →</div>
+      </a>
+    </div>
+
+    <!-- Summary chart -->
+    <div class="section-title"><div class="dot"></div> Platform Overview</div>
+    <div class="grid-2" style="margin-bottom:32px;">
+      <div class="card">
+        <div class="card-title">📊 Module Usage Breakdown</div>
+        <div class="card-subtitle">Interactions across all sustainability modules</div>
+        <div class="chart-container" style="height:260px;">
+          <canvas id="overviewChart"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">🌱 Global Impact Metrics</div>
+        <div class="card-subtitle">Estimated environmental impact tracked by EcoSphere users</div>
+        <div style="display:flex;flex-direction:column;gap:16px;margin-top:8px;">
+          <div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+              <span style="font-size:13px;">CO₂ Tracked (tonnes)</span>
+              <span style="font-size:13px;color:var(--accent-green);">4,280 t</span>
+            </div>
+            <div class="progress-bar"><div class="progress-fill" style="width:72%;background:linear-gradient(90deg,#ef9a9a,#e53935);"></div></div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+              <span style="font-size:13px;">Solar kWh Saved</span>
+              <span style="font-size:13px;color:var(--accent-green);">186,400 kWh</span>
+            </div>
+            <div class="progress-bar"><div class="progress-fill" style="width:85%;background:linear-gradient(90deg,#ffcc80,#ff9800);"></div></div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+              <span style="font-size:13px;">E-Waste Recycled (kg)</span>
+              <span style="font-size:13px;color:var(--accent-green);">12,650 kg</span>
+            </div>
+            <div class="progress-bar"><div class="progress-fill" style="width:55%;background:linear-gradient(90deg,#80cbc4,#00897b);"></div></div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+              <span style="font-size:13px;">Food Waste Prevented (kg)</span>
+              <span style="font-size:13px;color:var(--accent-green);">9,120 kg</span>
+            </div>
+            <div class="progress-bar"><div class="progress-fill" style="width:60%;background:linear-gradient(90deg,#a5d6a7,#388e3c);"></div></div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+              <span style="font-size:13px;">Air Quality Alerts Issued</span>
+              <span style="font-size:13px;color:var(--accent-green);">3,870</span>
+            </div>
+            <div class="progress-bar"><div class="progress-fill" style="width:40%;background:linear-gradient(90deg,#90caf9,#1565c0);"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick tips -->
+    <div class="card">
+      <div class="card-title">💡 Daily Eco Tips</div>
+      <div class="card-subtitle">Simple actions you can take today</div>
+      <div class="grid-3" style="margin-top:8px;">
+        <div style="padding:14px;background:var(--bg-secondary);border-radius:12px;border:1px solid var(--border-color);">
+          <div style="font-size:24px;margin-bottom:8px;">🚲</div>
+          <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Cycle or walk short trips</div>
+          <div style="font-size:12px;color:var(--text-muted);">Saves ~0.21 kg CO₂ per km vs driving</div>
+        </div>
+        <div style="padding:14px;background:var(--bg-secondary);border-radius:12px;border:1px solid var(--border-color);">
+          <div style="font-size:24px;margin-bottom:8px;">🥗</div>
+          <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Try a plant-based meal</div>
+          <div style="font-size:12px;color:var(--text-muted);">Reduces meal CO₂ footprint by up to 73%</div>
+        </div>
+        <div style="padding:14px;background:var(--bg-secondary);border-radius:12px;border:1px solid var(--border-color);">
+          <div style="font-size:24px;margin-bottom:8px;">🔌</div>
+          <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Unplug idle electronics</div>
+          <div style="font-size:12px;color:var(--text-muted);">Standby power wastes 5–10% of home energy</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /page-body -->
+</div><!-- /main-content -->
+
+<script src="app.js"></script>
+<script src="data-engine.js"></script>
+<script src="ml-engine.js"></script>
+<script src="agentic-orchestrator.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('sidebar-mount').innerHTML = renderSidebar('index');
+
+  // Sync big score
+  const bigScore = document.getElementById('big-score-val');
+  const topScore = document.getElementById('eco-score-val');
+  const overall = EcoScore.overall();
+  if (bigScore) bigScore.textContent = overall;
+  if (topScore) topScore.textContent = overall;
+
+  // Overview chart
+  const ctx = document.getElementById('overviewChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Carbon Footprint','Solar Loss','E-Waste','Air Quality','Solar Energy','Food Waste'],
+      datasets: [{
+        data: [22, 14, 18, 19, 15, 12],
+        backgroundColor: ['#ef9a9a','#fff176','#80cbc4','#90caf9','#ffcc80','#a5d6a7'],
+        borderColor: '#112240',
+        borderWidth: 3,
+        hoverOffset: 8
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'right', labels: { boxWidth: 12, padding: 14, font: { size: 12 } } },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.label}: ${ctx.parsed}% usage`
+          }
+        }
+      },
+      cutout: '65%'
+    }
+  });
+});
+</script>
+</body>
+</html>

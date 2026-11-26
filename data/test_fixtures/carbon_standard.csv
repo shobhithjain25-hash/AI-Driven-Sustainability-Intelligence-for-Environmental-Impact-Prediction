@@ -1,0 +1,9 @@
+carKm,busKm,elec,hh,flights,lpg,diet,shopping,total_co2
+25,12,240,3,1,1,moderate,moderate,385.2
+40,5,320,4,2,2,non-veg,frequent,490.5
+10,25,180,2,0,1,vegetarian,minimal,265.8
+0,30,150,1,0,1,vegan,minimal,195.4
+55,0,410,5,3,2,non-veg,frequent,580.1
+30,15,220,3,1,1,moderate,moderate,355.0
+15,20,190,2,0,1,vegetarian,moderate,290.3
+35,10,280,4,1,2,moderate,moderate,410.7

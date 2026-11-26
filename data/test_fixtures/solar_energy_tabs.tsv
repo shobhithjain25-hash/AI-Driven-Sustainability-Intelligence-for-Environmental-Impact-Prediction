@@ -1,0 +1,8 @@
+surface_area	panel_efficiency	sunlight_hours	grid_tariff	system_tilt	annual_yield_kwh
+25	0.19	5.4	8.5	20	4580
+40	0.20	5.2	8.0	22	7250
+15	0.18	5.6	9.0	18	2890
+50	0.21	5.1	7.5	25	9100
+30	0.19	5.5	8.5	20	5620
+20	0.18	5.3	8.0	20	3650
+35	0.20	5.4	8.5	22	6480

@@ -1,0 +1,8 @@
+station_city|fine_particulate_pm25|coarse_particulate_pm10|nitrogen_dioxide|sulfur_dioxide|carbon_monoxide|cpcb_aqi
+Delhi|145.2|260.5|48.2|18.5|2.4|315
+Mumbai|65.4|120.8|28.4|12.1|1.1|142
+Bangalore|35.1|70.2|19.5|8.4|0.8|88
+Kolkata|110.8|210.4|42.1|15.2|1.9|260
+Chennai|48.6|95.1|22.3|9.8|0.9|112
+Hyderabad|58.2|115.6|26.1|11.4|1.0|128
+Pune|52.0|102.3|24.5|10.2|0.9|118

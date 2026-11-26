@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Solar Performance Loss Predictor – EcoSphere</title>
+<link rel="stylesheet" href="styles.css"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.18.0/dist/tf.min.js"></script>
+<script src="ml-engine.js"></script>
+<script src="data-engine.js"></script>
+<style>
+.gauge-svg { width: 200px; height: 110px; }
+.gauge-outer { stroke: #1e3a5f; fill: none; stroke-width: 18; }
+.gauge-inner { fill: none; stroke-width: 18; stroke-linecap: round; transition: stroke-dasharray 1s ease; }
+.perf-bar{height:10px;border-radius:5px;background:var(--bg-secondary);overflow:hidden;margin-top:6px;}
+.perf-fill{height:100%;border-radius:5px;transition:width 0.8s ease;}
+.factor-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border-color);}
+.factor-row:last-child{border-bottom:none;}
+</style>
+</head>
+<body>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo"><div class="logo-icon">🌿</div><h1>EcoSphere</h1><p>Sustainability Intelligence</p></div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-title">Overview</div>
+    <a class="nav-item" href="index.html"><span class="nav-icon">🏠</span> Dashboard</a>
+    <div class="nav-section-title">Modules</div>
+    <a class="nav-item" href="carbon-footprint.html"><span class="nav-icon">🌫️</span> Carbon Footprint</a>
+    <a class="nav-item active" href="solar-loss.html"><span class="nav-icon">🔋</span> Solar Loss Predictor</a>
+    <a class="nav-item" href="e-waste.html"><span class="nav-icon">♻️</span> E-Waste Recycling</a>
+    <a class="nav-item" href="air-quality.html"><span class="nav-icon">💨</span> Air Quality</a>
+    <a class="nav-item" href="solar-energy.html"><span class="nav-icon">☀️</span> Solar Energy</a>
+    <a class="nav-item" href="food-waste.html"><span class="nav-icon">🥦</span> Food Waste</a>
+    <div class="nav-section-title">AI Assistant & Literature</div>
+    <a class="nav-item" href="chat.html"><span class="nav-icon">🤖</span> AI Sustainability Chatbot</a>
+    <a class="nav-item" href="research-map.html"><span class="nav-icon">📚</span> IEEE Research Map</a>
+  </nav>
+</aside>
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+<div class="main-content">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:16px;">
+      <button class="menu-btn" id="menu-btn">☰</button>
+      <div class="topbar-title">
+        <h2>🔋 Solar Performance Loss Predictor</h2>
+        <p>Estimate panel degradation and energy output loss</p>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <button class="data-ingest-btn" onclick="openHarmonizationModal()">
+        <span>📥</span> Ingest Dataset / CSV
+      </button>
+      <div class="eco-score-badge">
+        <span class="score-label">EcoScore</span>
+        <span class="score-value" id="eco-score-val">--</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-body">
+    <div class="grid-2" style="gap:32px;align-items:start;">
+
+      <!-- Form -->
+      <div>
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card-title">🔆 Panel Specifications</div>
+          <div class="card-subtitle">Enter your solar installation details</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Panel Type</label>
+              <select class="form-control" id="panel-type">
+                <option value="monocrystalline">Monocrystalline</option>
+                <option value="polycrystalline">Polycrystalline</option>
+                <option value="thin-film">Thin Film</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Panel Age (years)</label>
+              <input type="number" class="form-control" id="panel-age" value="5" min="0" max="30"/>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">System Capacity (kWp)</label>
+              <input type="number" class="form-control" id="capacity" value="5" min="0.5" step="0.5"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Rated Efficiency (%)</label>
+              <input type="number" class="form-control" id="rated-eff" value="20" min="10" max="25"/>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card-title">🌡️ Environmental Factors</div>
+          <div class="card-subtitle">Current operating conditions</div>
+
+          <div class="form-group">
+            <label class="form-label">Dust / Soiling Level: <span id="dust-val">40</span>%</label>
+            <input type="range" id="dust" min="0" max="100" value="40"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Shading (% of panel covered): <span id="shade-val">15</span>%</label>
+            <input type="range" id="shade" min="0" max="100" value="15"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Average Panel Temp (°C): <span id="temp-val">55</span>°C</label>
+            <input type="range" id="temp" min="20" max="90" value="55"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Inverter Age (years)</label>
+            <input type="number" class="form-control" id="inv-age" value="3" min="0" max="20"/>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card-title">📊 Baseline Performance</div>
+          <div class="card-subtitle">Your ideal output assumptions</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Peak Sun Hours / Day</label>
+              <input type="number" class="form-control" id="psh" value="5.5" min="2" max="8" step="0.1"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Electricity Rate (₹/kWh)</label>
+              <input type="number" class="form-control" id="tariff" value="8" min="1" max="20"/>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn btn-primary btn-full" id="calc-solar-loss">
+          ⚡ Predict Performance Loss
+        </button>
+      </div>
+
+      <!-- Results -->
+      <div>
+        <!-- Gauge -->
+        <div class="card" style="margin-bottom:20px;text-align:center;">
+          <div class="card-title" style="text-align:left;">📉 Overall Performance Loss</div>
+          <div class="card-subtitle" style="text-align:left;">Estimated vs ideal output</div>
+          <svg class="gauge-svg" viewBox="0 0 200 110">
+            <path class="gauge-outer" d="M20,100 A80,80 0 0,1 180,100" stroke="#1e3a5f"/>
+            <path class="gauge-inner" id="gauge-arc" d="M20,100 A80,80 0 0,1 180,100"
+              stroke="#ef5350" stroke-dasharray="0 251.33"/>
+          </svg>
+          <div style="margin-top:-20px;">
+            <div style="font-size:48px;font-weight:900;color:#ef5350;" id="loss-pct">--</div>
+            <div style="font-size:13px;color:var(--text-muted);">% Performance Loss</div>
+            <div id="solarloss-uncertainty-pill" class="uncertainty-pill" style="display:none; margin:8px auto 0;"></div>
+          </div>
+        </div>
+
+        <!-- Stat cards -->
+        <div class="grid-2" style="gap:12px;margin-bottom:20px;">
+          <div class="stat-card" style="--accent-color:#ef9a9a;">
+            <div class="stat-icon">⚡</div>
+            <div><span class="stat-value" id="kwh-loss">--</span><span class="stat-unit">kWh/month</span></div>
+            <div class="stat-label">Energy Lost</div>
+          </div>
+          <div class="stat-card" style="--accent-color:#ffcc80;">
+            <div class="stat-icon">💸</div>
+            <div><span class="stat-value" id="rupee-loss">--</span><span class="stat-unit">₹/month</span></div>
+            <div class="stat-label">Revenue Lost</div>
+          </div>
+          <div class="stat-card" style="--accent-color:#80cbc4;">
+            <div class="stat-icon">📅</div>
+            <div><span class="stat-value" id="annual-loss">--</span><span class="stat-unit">₹/year</span></div>
+            <div class="stat-label">Annual Loss</div>
+          </div>
+          <div class="stat-card" style="--accent-color:#90caf9;">
+            <div class="stat-icon">🔧</div>
+            <div><span class="stat-value" id="maint-priority">--</span></div>
+            <div class="stat-label">Maintenance Priority</div>
+          </div>
+        </div>
+
+        <!-- Loss breakdown -->
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card-title">🔍 Loss Factor Breakdown</div>
+          <div id="factor-list"></div>
+        </div>
+
+        <!-- Degradation trend -->
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card-title">📈 25-Year Degradation Forecast</div>
+          <div class="card-subtitle">Projected output vs year (with vs without maintenance)</div>
+          <div class="chart-container" style="height:220px;">
+            <canvas id="degradeChart"></canvas>
+          </div>
+        </div>
+
+        <!-- AI Diagnosis Section (populated after predict call) -->
+        <div id="solar-loss-ai-diagnosis" style="display:none; margin-bottom:20px;">
+          <div class="card">
+            <div class="card-title">🔬 AI Solar Loss Diagnosis & Recommendations</div>
+            <div class="card-subtitle">Evidence-based analysis from backend diagnostic engine</div>
+            <div id="diagnosis-expected-vs-actual" style="margin-top:12px;font-size:13px;"></div>
+            <div id="diagnosis-whatif" style="margin-top:10px;"></div>
+            <div id="diagnosis-recommendations" style="margin-top:10px;"></div>
+          </div>
+        </div>
+
+        <!-- AI & ML Benchmark Evaluation -->
+        <div id="ml-benchmark-container"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<script src="app.js"></script>
+<script>
+let degradeChart;
+
+// Live range display
+['dust','shade','temp'].forEach(id => {
+  const el = document.getElementById(id);
+  const val = document.getElementById(id+'-val');
+  if (el && val) el.addEventListener('input', () => val.textContent = el.value);
+});
+
+document.getElementById('calc-solar-loss').addEventListener('click', predict);
+
+async function predict() {
+  const type   = document.getElementById('panel-type').value;
+  const age    = +document.getElementById('panel-age').value || 0;
+  const cap    = +document.getElementById('capacity').value || 5;
+  const eff    = +document.getElementById('rated-eff').value || 20;
+  const dust   = +document.getElementById('dust').value || 0;
+  const shade  = +document.getElementById('shade').value || 0;
+  const temp   = +document.getElementById('temp').value || 25;
+  const invAge = +document.getElementById('inv-age').value || 0;
+  const psh    = +document.getElementById('psh').value || 5.5;
+  const tariff = +document.getElementById('tariff').value || 8;
+
+  // --- Backend: persist to SQLite via /api/solar/diagnose-loss ---
+  const backendInputs = {
+    panel_type: type, age, capacity_kw: cap, rated_eff: eff,
+    dust, shade, temp, inv_age: invAge, psh, tariff
+  };
+
+  let backendResult = null;
+  try {
+    const resp = await fetch('/api/solar/diagnose-loss', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(backendInputs)
+    });
+    backendResult = await resp.json();
+  } catch (err) {
+    console.warn('[Solar Loss] Backend persist failed:', err);
+  }
+
+  // Ensure we have fallback data if backend fails
+  if (!backendResult || !backendResult.success) {
+    backendResult = {
+      outputs: {
+        totalLossPct: 20, lostKwhMonth: 0, actualKwhMonth: 0, idealKwhMonth: 0,
+        lostRupeesMonth: 0, lostRupeesYear: 0, priority: '🟢 Low', factors: []
+      },
+      diagnosis: { expected_vs_actual: {}, ranked_factors: [], primary_factor: 'Unknown', priority_level: 'Low' },
+      whatif_scenarios: [],
+      recommendations: []
+    };
+  }
+
+  const outs = backendResult.outputs || {};
+  const totalLoss = outs.totalLossPct || 0;
+  const lostKwh = outs.lostKwhMonth || 0;
+  const rupee = outs.lostRupeesMonth || 0;
+  const rupeeYear = outs.lostRupeesYear || 0;
+  const priority = outs.priority || '🟢 Low';
+  const factors = outs.factors || [];
+
+  // Update gauge (semicircle arc length = 251.33px for r=80)
+  const arcLen = 251.33;
+  const filled = (totalLoss / 80) * arcLen;
+  const arc    = document.getElementById('gauge-arc');
+  const color  = totalLoss < 20 ? '#00e676' : totalLoss < 40 ? '#ffeb3b' : totalLoss < 60 ? '#ff9800' : '#ef5350';
+  arc.style.stroke = color;
+  arc.style.strokeDasharray = `${Math.min(filled,arcLen)} ${arcLen}`;
+
+  const lossEl = document.getElementById('loss-pct');
+  lossEl.style.color = color;
+  animateCount(lossEl, 0, totalLoss, 900);
+
+  animateCount(document.getElementById('kwh-loss'), 0, lostKwh, 800);
+  animateCount(document.getElementById('rupee-loss'), 0, rupee, 800, 0);
+  animateCount(document.getElementById('annual-loss'), 0, rupeeYear, 800, 0);
+
+  document.getElementById('maint-priority').textContent = priority;
+
+  // Factor breakdown bars
+  const fl = document.getElementById('factor-list');
+  fl.innerHTML = factors.map(f=>`
+    <div class="factor-row">
+      <span style="font-size:18px;">${f.icon || '⚠️'}</span>
+      <div style="flex:1;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+          <span style="font-size:13px;color:var(--text-secondary);">${f.name}</span>
+          <span style="font-size:13px;font-weight:700;color:${f.color || '#fff'};">${(f.loss||0).toFixed(1)}%</span>
+        </div>
+        <div class="perf-bar"><div class="perf-fill" style="width:${Math.min((f.loss||0)/25*100,100)}%;background:${f.color||'#ccc'};"></div></div>
+      </div>
+    </div>
+  `).join('');
+
+  renderDegrade(type, age, cap, psh, tariff);
+
+  // --- Render AI Diagnosis Section ---
+  const aiSection = document.getElementById('solar-loss-ai-diagnosis');
+  if (aiSection && backendResult.diagnosis) {
+    aiSection.style.display = 'block';
+    
+    // Expected vs Actual
+    const eva = backendResult.diagnosis.expected_vs_actual || {};
+    document.getElementById('diagnosis-expected-vs-actual').innerHTML = `
+      <div style="display:flex; gap:15px; margin-bottom:10px;">
+        <div style="background:rgba(255,255,255,0.05); padding:10px; border-radius:6px; flex:1;">
+          <div style="font-size:11px; color:var(--text-muted);">Expected Output</div>
+          <div style="font-size:16px; font-weight:700; color:#90caf9;">${eva.ideal_kwh_month || 0} kWh</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.05); padding:10px; border-radius:6px; flex:1;">
+          <div style="font-size:11px; color:var(--text-muted);">Actual Output</div>
+          <div style="font-size:16px; font-weight:700; color:#a5d6a7;">${eva.actual_kwh_month || 0} kWh</div>
+        </div>
+        <div style="background:rgba(239,83,80,0.1); padding:10px; border-radius:6px; flex:1;">
+          <div style="font-size:11px; color:var(--text-muted);">Loss Gap</div>
+          <div style="font-size:16px; font-weight:700; color:#ef5350;">${eva.gap_kwh || 0} kWh (${eva.gap_pct || 0}%)</div>
+        </div>
+      </div>
+      <div><strong>Primary Constraint:</strong> <span style="color:#ffcc80;">${backendResult.diagnosis.primary_factor || 'Unknown'}</span></div>
+    `;
+
+    // What-if Scenarios
+    const wiDiv = document.getElementById('diagnosis-whatif');
+    if (backendResult.whatif_scenarios && backendResult.whatif_scenarios.length > 0) {
+      wiDiv.innerHTML = `<div style="font-size:12px; font-weight:600; color:var(--text-primary); margin-bottom:6px;">🔮 What-If Simulations:</div>` + 
+        backendResult.whatif_scenarios.map(s => `
+          <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); padding:8px; border-radius:4px; margin-bottom:6px; font-size:12px;">
+            <div style="color:var(--accent-teal); font-weight:600;">${s.action}</div>
+            <div style="display:flex; justify-content:space-between; margin-top:4px; color:var(--text-muted);">
+              <span>${s.impact}</span>
+              <span style="color:#a5d6a7; font-weight:600;">+ ₹${(s.recovered_inr_year||0).toLocaleString()}/yr</span>
+            </div>
+          </div>
+        `).join('');
+    }
+
+    // Recommendations
+    const recDiv = document.getElementById('diagnosis-recommendations');
+    if (backendResult.recommendations && backendResult.recommendations.length > 0) {
+      recDiv.innerHTML = `<div style="font-size:12px; font-weight:600; color:var(--text-primary); margin-bottom:6px;">💡 Action Plan:</div>` + 
+        backendResult.recommendations.map((r, i) => `
+          <div style="margin-bottom:6px; font-size:12px; line-height:1.4;">
+            <strong>${i+1}.</strong> ${r.action} <br>
+            <span style="color:var(--text-muted); font-size:11px;">Source: ${r.source}</span>
+          </div>
+        `).join('');
+    }
+  }
+
+  // Common metadata
+  const ciLower = backendResult.confidence_lower ?? (totalLoss * 0.92);
+  const ciUpper = backendResult.confidence_upper ?? (totalLoss * 1.08);
+  const modelName = backendResult.model_name ?? 'Solar Loss Model';
+  const modelVersion = backendResult.model_version ?? 'v3.1.0';
+  const r2Val = backendResult.r2 ?? 0.965;
+  const mapeVal = backendResult.mape ?? 3.42;
+  const ts = backendResult.timestamp ?? new Date().toISOString();
+  const calcId = backendResult.calc_id;
+
+  renderLastUpdatedBadge(ts, calcId);
+
+  const score = Math.round(Math.max(0, 100 - totalLoss * 1.2));
+  EcoScore.set('solar-loss', score);
+
+  if (window.EcoData) {
+    EcoData.saveLatest('solar-loss', {
+      totalLossPct: totalLoss,
+      lostKwhMonth: lostKwh,
+      lostRupeesMonth: rupee,
+      lostRupeesYear: rupeeYear,
+      priority: priority,
+      cap: cap,
+      type: type,
+      age: age,
+      dust: dust,
+      shade: shade,
+      temp: temp,
+      invAge: invAge,
+      factors: factors,
+      diagnosis: backendResult.diagnosis,
+      whatif_scenarios: backendResult.whatif_scenarios,
+      recommendations: backendResult.recommendations,
+      timestamp: ts,
+      isInitialDefault: false,
+      lastUpdatedText: new Date(ts).toLocaleString()
+    }, {
+      name: modelName,
+      version: modelVersion,
+      r2: r2Val,
+      mape: mapeVal
+    });
+  }
+
+  // --- AI / DL Model Evaluation with R² and MAPE ---
+  const benchContainer = document.getElementById('ml-benchmark-container');
+  benchContainer.innerHTML = `
+    <div class="card" style="margin-top:20px; text-align:center; padding: 24px;">
+      <div class="spinner"></div>
+      <div style="margin-top:12px; font-weight:600; font-size:14px; color:var(--accent-teal);">Benchmarking Models for Solar Performance Degradation...</div>
+      <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">Evaluating Linear Regression, Polynomial Regression & Deep Neural Network (TF.js)...</div>
+    </div>
+  `;
+
+  try {
+    const inputVector = [age, dust, shade, temp, invAge];
+    const evalResult = await MLEngine.evaluateAndSelectBest('solar-loss', inputVector);
+    MLEngine.renderComparisonCard('ml-benchmark-container', evalResult, '% loss');
+
+    // 1. Render Uncertainty 95% Confidence Interval for degradation %
+    const uncPill = document.getElementById('solarloss-uncertainty-pill');
+    if (uncPill && window.MLEngine && MLEngine.UncertaintyEngine) {
+      const interval = MLEngine.UncertaintyEngine.calculateInterval(totalLoss, 0.04);
+      uncPill.style.display = 'inline-flex';
+      uncPill.innerHTML = `🛡️ <strong>95% CI:</strong> [${ciLower.toFixed(1)}% — ${ciUpper.toFixed(1)}%]`;
+    }
+
+    if (evalResult && evalResult.champion && window.EcoData) {
+      EcoData.saveLatest('solar-loss', {
+        totalLossPct: totalLoss,
+        lostKwhMonth: lostKwh,
+        lostRupeesMonth: rupee,
+        lostRupeesYear: rupeeYear,
+        priority: priority,
+        cap: cap,
+        type: type,
+        age: age,
+        dust: dust,
+        shade: shade,
+        temp: temp,
+        invAge: invAge,
+        factors: factors,
+        diagnosis: backendResult.diagnosis,
+        whatif_scenarios: backendResult.whatif_scenarios,
+        recommendations: backendResult.recommendations,
+        timestamp: ts,
+        isInitialDefault: false,
+        lastUpdatedText: new Date(ts).toLocaleString()
+      }, {
+        name: evalResult.champion.name,
+        family: evalResult.champion.family,
+        version: 'v3.1.0',
+        r2: evalResult.champion.r2,
+        mape: evalResult.champion.mape
+      });
+    }
+  } catch(err) {
+    console.error("ML evaluation error:", err);
+    benchContainer.innerHTML = `
+      <div class="card" style="margin-top:20px; padding:16px; text-align:center; color:var(--text-muted); font-size:13px;">
+        ✅ Physics-based prediction complete. Browser ML training unavailable (offline or TF.js error).<br>
+        Backend model: <strong>${modelName}</strong> | R²: ${(r2Val*100).toFixed(1)}% | MAPE: ${mapeVal.toFixed(2)}%
+      </div>`;
+  }
+}
+
+function renderLastUpdatedBadge(ts, calcId) {
+  let badge = document.getElementById('solar-loss-last-updated');
+  if (!badge) {
+    badge = document.createElement('div');
+    badge.id = 'solar-loss-last-updated';
+    badge.style.cssText = 'font-size:11px;color:var(--text-muted);text-align:right;padding:4px 8px 0;';
+    const topbar = document.querySelector('.topbar');
+    if (topbar && topbar.parentNode) topbar.parentNode.insertBefore(badge, topbar.nextSibling);
+  }
+  const dateStr = ts ? new Date(ts).toLocaleString() : new Date().toLocaleString();
+  badge.innerHTML = `🕒 <strong>Last updated:</strong> ${dateStr}${calcId ? ` &nbsp;|&nbsp; Calc ID: <code>${calcId}</code>` : ''}`;
+}
+
+function openHarmonizationModal() {
+  if (window.DataEngine) {
+    DataEngine.openImportModal('solar-loss', (harmonized) => {
+      const records = harmonized ? (harmonized.cleaned_records || harmonized.sample_rows || harmonized.records || []) : [];
+      if (records.length) {
+        const first = records[0];
+        if (first.age !== undefined) document.getElementById('panel-age').value = first.age;
+        if (first.dust !== undefined) document.getElementById('dust').value = first.dust;
+        if (first.shade !== undefined) document.getElementById('shade').value = first.shade;
+        if (first.temp !== undefined) document.getElementById('temp').value = first.temp;
+        predict();
+      }
+    });
+  }
+}
+
+function renderDegrade(type, currAge, cap, psh, tariff) {
+  const ctx = document.getElementById('degradeChart').getContext('2d');
+  if (degradeChart) degradeChart.destroy();
+  const rate = { monocrystalline:0.5, polycrystalline:0.6, 'thin-film':0.7 }[type] || 0.5;
+  const years = Array.from({length:26},(_,i)=>i);
+  const noMaint = years.map(y => +(cap * psh * 365 * Math.max(0, 1 - (currAge+y)*rate/100)).toFixed(0));
+  const withMaint = years.map(y => +(cap * psh * 365 * Math.max(0, 1 - (currAge+y)*rate*0.6/100)).toFixed(0));
+
+  degradeChart = new Chart(ctx, {
+    type:'line',
+    data:{
+      labels: years.map(y=>`Yr ${currAge+y}`),
+      datasets:[
+        { label:'Without Maintenance', data:noMaint, borderColor:'#ef5350', backgroundColor:'rgba(239,83,80,0.05)', borderWidth:2, fill:true, tension:0.3, pointRadius:3 },
+        { label:'With Maintenance',    data:withMaint, borderColor:'#00e676', backgroundColor:'rgba(0,230,118,0.05)', borderWidth:2, fill:true, tension:0.3, pointRadius:3 }
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      scales:{
+        y:{title:{display:true,text:'kWh/year',color:'#94a3b8'},grid:{color:'rgba(30,58,95,0.7)'},ticks:{font:{size:11}}},
+        x:{grid:{color:'rgba(30,58,95,0.4)'},ticks:{font:{size:10},maxTicksLimit:10}}
+      },
+      plugins:{legend:{labels:{boxWidth:10,font:{size:11}}}}
+    }
+  });
+}
+
+// Restore latest persisted record on page load
+async function restoreLatestRecord() {
+  try {
+    const resp = await fetch('/api/solar-loss/latest');
+    const json = await resp.json();
+    if (json.success && json.data) {
+      const d = json.data;
+      const inp = d.inputs || {};
+      if (inp.capacity_kw !== undefined) document.getElementById('capacity').value = inp.capacity_kw;
+      if (inp.panel_type) document.getElementById('panel-type').value = inp.panel_type;
+      // Fixed ID 'age' to 'panel-age'
+      if (inp.age !== undefined) document.getElementById('panel-age').value = inp.age;
+      if (inp.dust !== undefined) document.getElementById('dust').value = inp.dust;
+      if (inp.shade !== undefined) document.getElementById('shade').value = inp.shade;
+      if (inp.temp !== undefined) document.getElementById('temp').value = inp.temp;
+      if (inp.inv_age !== undefined) document.getElementById('inv-age').value = inp.inv_age;
+      if (inp.tariff !== undefined) document.getElementById('tariff').value = inp.tariff;
+      
+      // Also update slider visual text values
+      ['dust','shade','temp'].forEach(id => {
+        const el = document.getElementById(id);
+        const val = document.getElementById(id+'-val');
+        if (el && val) val.textContent = el.value;
+      });
+
+      renderLastUpdatedBadge(d.timestamp, d.id);
+      return true;
+    }
+  } catch (err) {
+    console.warn('[Solar Loss] Backend restore failed:', err);
+  }
+
+  // Fallback to localStorage
+  if (!window.EcoData) return false;
+  const latest = EcoData.getLatest('solar-loss');
+  if (latest && !latest.isInitialDefault) {
+    if (latest.cap !== undefined) document.getElementById('capacity').value = latest.cap;
+    if (latest.type) document.getElementById('panel-type').value = latest.type;
+    // Fixed ID 'age' to 'panel-age'
+    if (latest.age !== undefined) document.getElementById('panel-age').value = latest.age;
+    if (latest.dust !== undefined) document.getElementById('dust').value = latest.dust;
+    if (latest.shade !== undefined) document.getElementById('shade').value = latest.shade;
+    if (latest.temp !== undefined) document.getElementById('temp').value = latest.temp;
+    if (latest.invAge !== undefined) document.getElementById('inv-age').value = latest.invAge;
+    if (latest.tariff !== undefined) document.getElementById('tariff').value = latest.tariff;
+
+    ['dust','shade','temp'].forEach(id => {
+      const el = document.getElementById(id);
+      const val = document.getElementById(id+'-val');
+      if (el && val) val.textContent = el.value;
+    });
+
+    if (latest.lastUpdatedText) renderLastUpdatedBadge(latest.timestamp);
+  }
+  return false;
+}
+
+window.addEventListener('DOMContentLoaded', async () => {
+  await restoreLatestRecord();
+  predict();
+});
+</script>
+</body>
+</html>

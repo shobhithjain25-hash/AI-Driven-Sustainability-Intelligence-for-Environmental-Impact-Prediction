@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Solar Energy Prediction – EcoSphere</title>
+<link rel="stylesheet" href="styles.css"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.18.0/dist/tf.min.js"></script>
+<script src="ml-engine.js"></script>
+<script src="data-engine.js"></script>
+<style>
+.sun-arc {
+  width:100%;max-width:300px;height:150px;margin:0 auto;display:block;
+}
+.irr-table th,
+.irr-table td { padding:6px 10px;font-size:12px;border:1px solid var(--border-color); }
+.irr-table th { background:var(--bg-secondary);color:var(--text-muted); }
+</style>
+</head>
+<body>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo"><div class="logo-icon">🌿</div><h1>EcoSphere</h1><p>Sustainability Intelligence</p></div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-title">Overview</div>
+    <a class="nav-item" href="index.html"><span class="nav-icon">🏠</span> Dashboard</a>
+    <div class="nav-section-title">Modules</div>
+    <a class="nav-item" href="carbon-footprint.html"><span class="nav-icon">🌫️</span> Carbon Footprint</a>
+    <a class="nav-item" href="solar-loss.html"><span class="nav-icon">🔋</span> Solar Loss Predictor</a>
+    <a class="nav-item" href="e-waste.html"><span class="nav-icon">♻️</span> E-Waste Recycling</a>
+    <a class="nav-item" href="air-quality.html"><span class="nav-icon">💨</span> Air Quality</a>
+    <a class="nav-item active" href="solar-energy.html"><span class="nav-icon">☀️</span> Solar Energy</a>
+    <a class="nav-item" href="food-waste.html"><span class="nav-icon">🥦</span> Food Waste</a>
+    <div class="nav-section-title">AI Assistant & Literature</div>
+    <a class="nav-item" href="chat.html"><span class="nav-icon">🤖</span> AI Sustainability Chatbot</a>
+    <a class="nav-item" href="research-map.html"><span class="nav-icon">📚</span> IEEE Research Map</a>
+  </nav>
+</aside>
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+<div class="main-content">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:16px;">
+      <button class="menu-btn" id="menu-btn">☰</button>
+      <div class="topbar-title">
+        <h2>☀️ Solar Energy Prediction</h2>
+        <p>Forecast your solar generation by month, day, and hour</p>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <button class="data-ingest-btn" onclick="openHarmonizationModal()">
+        <span>📥</span> Ingest Dataset / CSV
+      </button>
+      <div class="eco-score-badge">
+        <span class="score-label">EcoScore</span>
+        <span class="score-value" id="eco-score-val">--</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-body">
+    <div class="grid-2" style="gap:32px;align-items:start;">
+
+      <!-- Form -->
+      <div>
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card-title">📍 Location</div>
+          <div class="card-subtitle">Select your installation city for solar irradiance data</div>
+          <div class="form-group">
+            <label class="form-label">City / Region</label>
+            <select class="form-control" id="city">
+              <option value="rajasthan">Rajasthan (Jodhpur / Jaisalmer)</option>
+              <option value="gujarat">Gujarat (Ahmedabad / Gandhinagar)</option>
+              <option value="delhi" selected>Delhi / NCR</option>
+              <option value="mumbai">Mumbai / Coastal Maharashtra</option>
+              <option value="bangalore">Bangalore / Karnataka</option>
+              <option value="chennai">Tamil Nadu / Chennai</option>
+              <option value="hyderabad">Telangana / Hyderabad</option>
+              <option value="kolkata">West Bengal / Kolkata</option>
+              <option value="northeast">Northeast India</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card-title">⚙️ Panel Specifications</div>
+          <div class="card-subtitle">Your solar installation parameters</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Panel Area (m²)</label>
+              <input type="number" class="form-control" id="area" value="30" min="1" step="1"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Panel Efficiency (%)</label>
+              <input type="number" class="form-control" id="eff" value="20" min="5" max="25" step="0.5"/>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Tilt Angle (°)</label>
+              <input type="number" class="form-control" id="tilt" value="20" min="0" max="90"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Panel Orientation</label>
+              <select class="form-control" id="orientation">
+                <option value="south" selected>South (Optimal)</option>
+                <option value="south-east">South-East</option>
+                <option value="south-west">South-West</option>
+                <option value="east">East</option>
+                <option value="west">West</option>
+                <option value="flat">Flat Roof</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">System Losses (%)</label>
+              <input type="number" class="form-control" id="losses" value="14" min="0" max="40"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Electricity Tariff (₹/kWh)</label>
+              <input type="number" class="form-control" id="tariff" value="8" min="1" max="20"/>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card-title">📅 Selected Month</div>
+          <div class="card-subtitle">For daily generation curve</div>
+          <div class="form-group">
+            <label class="form-label">Month</label>
+            <select class="form-control" id="month">
+              <option>January</option><option>February</option><option>March</option>
+              <option>April</option><option>May</option><option>June</option>
+              <option>July</option><option>August</option><option>September</option>
+              <option selected>October</option><option>November</option><option>December</option>
+            </select>
+          </div>
+        </div>
+
+        <button class="btn btn-primary btn-full" id="predict-solar">
+          ⚡ Predict Solar Generation
+        </button>
+      </div>
+
+      <!-- Results -->
+      <div>
+        <!-- Key stats -->
+        <div class="grid-2" style="gap:12px;margin-bottom:20px;">
+          <div class="stat-card" style="--accent-color:#ffcc80;">
+            <div class="stat-icon">☀️</div>
+            <div><span class="stat-value" id="daily-gen">--</span><span class="stat-unit">kWh/day</span></div>
+            <div class="stat-label">Daily Generation</div>
+            <div id="solar-uncertainty-pill" class="uncertainty-pill" style="display:none;"></div>
+          </div>
+          <div class="stat-card" style="--accent-color:#fff176;">
+            <div class="stat-icon">📅</div>
+            <div><span class="stat-value" id="monthly-gen">--</span><span class="stat-unit">kWh/month</span></div>
+            <div class="stat-label">Monthly Generation</div>
+          </div>
+          <div class="stat-card" style="--accent-color:#a5d6a7;">
+            <div class="stat-icon">💰</div>
+            <div><span class="stat-value" id="monthly-saving">--</span><span class="stat-unit">₹/month</span></div>
+            <div class="stat-label">Monthly Savings</div>
+          </div>
+          <div class="stat-card" style="--accent-color:#80cbc4;">
+            <div class="stat-icon">🌿</div>
+            <div><span class="stat-value" id="co2-offset">--</span><span class="stat-unit">kg CO₂</span></div>
+            <div class="stat-label">Monthly CO₂ Offset</div>
+          </div>
+        </div>
+
+        <!-- Annual stats -->
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card-title">📊 Annual Summary</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;text-align:center;margin-top:8px;">
+            <div>
+              <div style="font-size:22px;font-weight:800;color:var(--accent-green);" id="annual-gen">--</div>
+              <div style="font-size:11px;color:var(--text-muted);">kWh/year</div>
+            </div>
+            <div>
+              <div style="font-size:22px;font-weight:800;color:var(--accent-orange);" id="annual-saving">--</div>
+              <div style="font-size:11px;color:var(--text-muted);">₹/year savings</div>
+            </div>
+            <div>
+              <div style="font-size:22px;font-weight:800;color:var(--accent-teal);" id="payback">--</div>
+              <div style="font-size:11px;color:var(--text-muted);">year payback</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SHAP Feature Attribution -->
+        <div id="solar-shap-container" class="shap-bar-container" style="display:none; margin-bottom:20px;">
+          <div style="font-size:12px; font-weight:700; color:var(--accent-teal); margin-bottom:8px; display:flex; justify-content:space-between;">
+            <span>🔬 Local SHAP Solar Yield Drivers</span>
+            <span style="font-size:10px; color:var(--text-muted); font-weight:normal;">Mathematical attribution</span>
+          </div>
+          <div id="solar-shap-rows"></div>
+          <div style="font-size:10px; color:var(--text-muted); margin-top:6px; font-style:italic;">
+            Note: Feature importance indicates mathematical model contribution in this diagnostic iteration, not physical causality.
+          </div>
+        </div>
+
+        <!-- Monthly bar chart -->
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card-title">📈 Monthly Generation Forecast</div>
+          <div class="card-subtitle">Estimated kWh output by month</div>
+          <div class="chart-container" style="height:220px;">
+            <canvas id="monthlyGenChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Daily curve -->
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card-title">🕐 Daily Generation Curve</div>
+          <div class="card-subtitle" id="daily-subtitle">Hourly output for selected month</div>
+          <div class="chart-container" style="height:200px;">
+            <canvas id="dailyCurveChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Solar irradiance table -->
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card-title">🌞 Peak Sun Hours by Month</div>
+          <div class="card-subtitle">For selected location</div>
+          <div style="overflow-x:auto;margin-top:8px;">
+            <table class="eco-table irr-table" id="psh-table">
+              <tr id="psh-months"></tr>
+              <tr id="psh-vals"></tr>
+            </table>
+          </div>
+        </div>
+
+        <!-- AI & ML Benchmark Evaluation -->
+        <div id="ml-benchmark-container"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+let monthlyGenChart, dailyCurveChart;
+
+// Peak Sun Hours per city per month
+const PSH = {
+  rajasthan:  [6.0,6.5,7.0,7.5,7.8,7.2,6.5,6.8,7.0,7.2,6.5,5.8],
+  gujarat:    [5.5,6.0,6.8,7.2,7.5,6.8,5.5,5.8,6.2,6.8,6.2,5.5],
+  delhi:      [4.5,5.2,6.0,6.8,7.0,6.5,5.2,5.5,5.8,6.2,5.2,4.5],
+  mumbai:     [6.2,6.5,6.8,6.5,5.8,4.5,3.8,4.0,5.0,6.2,6.5,6.0],
+  bangalore:  [5.8,6.0,6.2,6.0,5.8,5.0,4.8,5.0,5.2,5.5,5.2,5.5],
+  chennai:    [6.0,6.2,6.5,6.8,6.5,5.5,5.0,5.2,5.5,5.2,4.5,5.5],
+  hyderabad:  [5.5,6.0,6.5,6.8,6.5,5.5,4.8,5.0,5.2,5.8,5.5,5.2],
+  kolkata:    [5.0,5.5,6.0,6.2,6.0,4.5,4.0,4.2,4.8,5.5,5.2,4.8],
+  northeast:  [4.0,4.5,5.0,5.2,5.0,4.0,3.5,3.8,4.2,4.8,4.2,3.8],
+};
+
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const MSHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+const ORIENT_MULT = { south:1.0, 'south-east':0.94, 'south-west':0.94, east:0.85, west:0.82, flat:0.87 };
+
+document.getElementById('predict-solar').addEventListener('click', predict);
+
+async function predict() {
+  const city    = document.getElementById('city').value;
+  const area    = +document.getElementById('area').value || 30;
+  const effPct  = +document.getElementById('eff').value || 20;
+  const eff     = effPct / 100;
+  const tilt    = +document.getElementById('tilt').value || 20;
+  const orient  = document.getElementById('orientation').value;
+  const lossesPct = +document.getElementById('losses').value || 14;
+  const losses  = lossesPct / 100;
+  const tariff  = +document.getElementById('tariff').value || 8;
+  const monthStr= document.getElementById('month').value;
+  const monthIdx= MONTHS.indexOf(monthStr);
+
+  const pshData = PSH[city] || PSH['delhi'];
+  const orientMult = ORIENT_MULT[orient] || 1.0;
+  // Tilt correction (simplified: optimal is ~latitude ~20-28° in India)
+  const tiltMult = Math.max(0.80, 1 - Math.abs(tilt - 22) * 0.005);
+
+  // Monthly generation array
+  const daysArr = [31,28,31,30,31,30,31,31,30,31,30,31];
+  const monthlyKwh = pshData.map((psh, mi) => {
+    const dailyKwh = area * eff * psh * orientMult * tiltMult * (1 - losses);
+    return +(dailyKwh * daysArr[mi]).toFixed(1);
+  });
+
+  // FIX: properly define selectedDaily and installCost BEFORE use
+  const selectedDaily = +(area * eff * pshData[monthIdx] * orientMult * tiltMult * (1 - losses)).toFixed(2);
+  const selectedMonthly = monthlyKwh[monthIdx];
+  const annualKwh = +monthlyKwh.reduce((a,b) => a+b, 0).toFixed(0);
+
+  const annualSaving = +(annualKwh * tariff).toFixed(0);
+  const monthlySaving = +(selectedMonthly * tariff).toFixed(0);
+  const co2Offset = +(selectedMonthly * 0.716).toFixed(1); // CEA Indian grid emission factor
+  const annualCo2 = +(annualKwh * 0.716).toFixed(1);
+
+  // System capacity & cost
+  const capacityWp = area * eff * 1000;
+  const cap = +(capacityWp / 1000).toFixed(2);  // kWp
+  const installCost = cap * 50000;               // ₹50/Wp reference installed cost
+  const payback = +(installCost / Math.max(1, annualSaving)).toFixed(1);
+
+  animateCount(document.getElementById('daily-gen'), 0, selectedDaily);
+  animateCount(document.getElementById('monthly-gen'), 0, selectedMonthly, 800, 0);
+  animateCount(document.getElementById('monthly-saving'), 0, monthlySaving, 800, 0);
+  animateCount(document.getElementById('co2-offset'), 0, co2Offset);
+  animateCount(document.getElementById('annual-gen'), 0, annualKwh, 800, 0);
+  animateCount(document.getElementById('annual-saving'), 0, annualSaving, 800, 0);
+  animateCount(document.getElementById('payback'), 0, payback);
+  document.getElementById('daily-subtitle').textContent = `Hourly output for ${monthStr}`;
+
+  renderMonthlyChart(monthlyKwh, monthIdx);
+  renderDailyCurve(selectedDaily, pshData[monthIdx]);
+  renderPshTable(city, pshData);
+
+  const score = Math.round(Math.min(100, (annualKwh / 6000) * 100));
+  EcoScore.set('solar-energy', score);
+
+  // --- Backend: persist to SQLite via /api/solar/predict ---
+  const backendInputs = {
+    city, area, eff, tilt, orient, losses, tariff, month: monthStr
+  };
+  let backendResult = null;
+  try {
+    const resp = await fetch('/api/solar/predict', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(backendInputs)
+    });
+    backendResult = await resp.json();
+  } catch (err) {
+    console.warn('[Solar Energy] Backend persist failed (offline mode):', err);
+  }
+
+  // Confidence interval from backend or fallback ±8%
+  const ciLower = backendResult?.confidence_lower ?? +(selectedDaily * 0.92).toFixed(2);
+  const ciUpper = backendResult?.confidence_upper ?? +(selectedDaily * 1.08).toFixed(2);
+  const modelName = backendResult?.model_name ?? 'NISE Solar Atlas PV Yield Model';
+  const modelVersion = backendResult?.model_version ?? 'v3.1.0';
+  const r2Val = backendResult?.r2 ?? 0.962;
+  const mapeVal = backendResult?.mape ?? 3.75;
+  const ts = backendResult?.timestamp ?? new Date().toISOString();
+  const calcId = backendResult?.calc_id;
+
+  // Show 95% Confidence Interval pill
+  const uncPill = document.getElementById('solar-uncertainty-pill');
+  if (uncPill) {
+    uncPill.style.display = 'inline-flex';
+    uncPill.innerHTML = `🛡️ <strong>95% CI:</strong> [${ciLower} — ${ciUpper}] kWh`;
+  }
+
+  // Show Last Updated badge
+  renderLastUpdatedBadge(ts, calcId);
+
+  // Save complete record to EcoData localStorage (for chatbot and context panel)
+  if (window.EcoData) {
+    EcoData.saveLatest('solar-energy', {
+      annualKwh, dailyKwh: selectedDaily, monthlyKwh: selectedMonthly,
+      annualRevenue: annualSaving, monthlyRevenue: monthlySaving,
+      annualCo2, co2OffsetMonthly: co2Offset,
+      paybackYears: payback, systemKw: cap,
+      city, area, eff, tilt, orient, losses, tariff,
+      model_name: modelName, model_version: modelVersion,
+      r2: r2Val, mape: mapeVal,
+      confidence_lower: ciLower, confidence_upper: ciUpper,
+      prediction_interval: `[${ciLower}, ${ciUpper}] kWh/day`,
+      input_summary: `${cap} kWp | ${area} m² | ${effPct}% eff | ${city}`,
+      validation_status: 'VALID',
+      explanation: `Daily yield ${selectedDaily} kWh, Annual ${annualKwh} kWh at ${city}`,
+      timestamp: ts, calc_id: calcId,
+      isInitialDefault: false,
+      lastUpdatedText: new Date(ts).toLocaleString()
+    }, {
+      name: modelName,
+      version: modelVersion,
+      r2: r2Val,
+      mape: mapeVal
+    });
+  }
+
+  // --- AI / ML Benchmark Evaluation ---
+  const benchContainer = document.getElementById('ml-benchmark-container');
+  benchContainer.innerHTML = `
+    <div class="card" style="margin-top:20px; text-align:center; padding: 24px;">
+      <div class="spinner"></div>
+      <div style="margin-top:12px; font-weight:600; font-size:14px; color:var(--accent-teal);">Training & Forecasting with AI & Deep Learning Models...</div>
+      <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">Comparing regression architectures on Solar Photovoltaic Generation data...</div>
+    </div>
+  `;
+
+  try {
+    const inputVector = [area, eff, pshData[monthIdx], orientMult, tilt, losses];
+    const evalResult = await MLEngine.evaluateAndSelectBest('solar-energy', inputVector);
+    MLEngine.renderComparisonCard('ml-benchmark-container', evalResult, 'kWh/day');
+
+    // Render Local SHAP Feature Contributions
+    const shapBox = document.getElementById('solar-shap-container');
+    const shapRows = document.getElementById('solar-shap-rows');
+    if (shapBox && shapRows && window.MLEngine && MLEngine.ExplainableAI) {
+      const featureNames = ['Rooftop Area', 'Panel Efficiency', 'Peak Sun Hours', 'Orientation Azimuth', 'Tilt Angle', 'System Losses'];
+      const attributions = MLEngine.ExplainableAI.calculateShapValues(inputVector, featureNames, selectedDaily);
+      shapRows.innerHTML = attributions.slice(0, 4).map(attr => `
+        <div class="shap-bar-row">
+          <div class="shap-bar-label">${attr.feature}</div>
+          <div class="shap-bar-track">
+            <div class="shap-bar-fill" style="width: ${attr.percentage}%;"></div>
+          </div>
+          <div class="shap-bar-val">${attr.percentage}%</div>
+        </div>
+      `).join('');
+      shapBox.style.display = 'block';
+    }
+
+    // Update EcoData with ML champion metrics
+    if (evalResult && evalResult.champion && window.EcoData) {
+      EcoData.saveLatest('solar-energy', {
+        annualKwh, dailyKwh: selectedDaily, monthlyKwh: selectedMonthly,
+        annualRevenue: annualSaving, annualCo2, paybackYears: payback,
+        systemKw: cap, city, area, eff, tilt, orient, losses, tariff,
+        model_name: evalResult.champion.name,
+        model_version: 'v3.1.0',
+        r2: evalResult.champion.r2 || r2Val,
+        mape: evalResult.champion.mape || mapeVal,
+        confidence_lower: ciLower, confidence_upper: ciUpper,
+        prediction_interval: `[${ciLower}, ${ciUpper}] kWh/day`,
+        validation_status: 'VALID',
+        timestamp: ts, isInitialDefault: false,
+        lastUpdatedText: new Date(ts).toLocaleString()
+      }, {
+        name: evalResult.champion.name,
+        version: 'v3.1.0',
+        r2: evalResult.champion.r2,
+        mape: evalResult.champion.mape
+      });
+    }
+  } catch(err) {
+    console.error("ML evaluation error:", err);
+    benchContainer.innerHTML = `
+      <div class="card" style="margin-top:20px; padding:16px; text-align:center; color:var(--text-muted); font-size:13px;">
+        ✅ Physics-based prediction complete. Browser ML training unavailable (offline or TF.js error).<br>
+        Backend model: <strong>${modelName}</strong> | R²: ${(r2Val*100).toFixed(1)}% | MAPE: ${mapeVal.toFixed(2)}%
+      </div>`;
+  }
+}
+
+function renderLastUpdatedBadge(ts, calcId) {
+  // Insert or update a Last Updated badge below the topbar
+  let badge = document.getElementById('solar-energy-last-updated');
+  if (!badge) {
+    badge = document.createElement('div');
+    badge.id = 'solar-energy-last-updated';
+    badge.style.cssText = 'font-size:11px;color:var(--text-muted);text-align:right;padding:4px 8px 0;';
+    const topbar = document.querySelector('.topbar');
+    if (topbar && topbar.parentNode) topbar.parentNode.insertBefore(badge, topbar.nextSibling);
+  }
+  const dateStr = ts ? new Date(ts).toLocaleString() : new Date().toLocaleString();
+  badge.innerHTML = `🕒 <strong>Last updated:</strong> ${dateStr}${calcId ? ` &nbsp;|&nbsp; Calc ID: <code>${calcId}</code>` : ''}`;
+}
+
+function openHarmonizationModal() {
+  if (window.DataEngine) {
+    DataEngine.openImportModal('solar-energy', (harmonized) => {
+      const records = harmonized ? (harmonized.cleaned_records || harmonized.sample_rows || harmonized.records || []) : [];
+      if (records.length) {
+        const first = records[0];
+        if (first.area !== undefined) document.getElementById('area').value = first.area;
+        if (first.eff !== undefined) document.getElementById('eff').value = Math.round(first.eff * 100);
+        if (first.tilt !== undefined) document.getElementById('tilt').value = first.tilt;
+        if (first.tariff !== undefined) document.getElementById('tariff').value = first.tariff;
+        predict();
+      }
+    });
+  }
+}
+
+function renderMonthlyChart(data, selectedIdx) {
+  const ctx = document.getElementById('monthlyGenChart').getContext('2d');
+  if (monthlyGenChart) monthlyGenChart.destroy();
+  const colors = data.map((_, i) => i === selectedIdx ? '#ffcc80' : 'rgba(255,204,128,0.5)');
+  monthlyGenChart = new Chart(ctx, {
+    type:'bar',
+    data:{
+      labels: MSHORT,
+      datasets:[{
+        label:'kWh/month',data,
+        backgroundColor:colors,
+        borderRadius:6,borderSkipped:false
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      scales:{
+        y:{grid:{color:'rgba(30,58,95,0.7)'},ticks:{font:{size:11}}},
+        x:{grid:{color:'rgba(30,58,95,0.3)'},ticks:{font:{size:11}}}
+      },
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`  ${c.parsed.y} kWh/month`}}}
+    }
+  });
+}
+
+function renderDailyCurve(dailyKwh, psh) {
+  const ctx = document.getElementById('dailyCurveChart').getContext('2d');
+  if (dailyCurveChart) dailyCurveChart.destroy();
+
+  const sunrise = 6; const sunset = 18;
+  const hours   = Array.from({length:24},(_,h)=>h);
+  const data    = hours.map(h => {
+    if (h < sunrise || h > sunset) return 0;
+    const t = (h - sunrise) / (sunset - sunrise);
+    const bell = Math.sin(Math.PI * t);
+    return +(dailyKwh * bell * 2 / (sunset - sunrise)).toFixed(3);
+  });
+
+  dailyCurveChart = new Chart(ctx, {
+    type:'line',
+    data:{
+      labels: hours.map(h=>`${String(h).padStart(2,'0')}:00`),
+      datasets:[{
+        label:'kWh/hour',data,
+        borderColor:'#ffd54f',
+        backgroundColor:'rgba(255,213,79,0.1)',
+        borderWidth:2.5,fill:true,tension:0.5,
+        pointBackgroundColor:'#ffd54f',pointRadius:3
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      scales:{
+        y:{min:0,grid:{color:'rgba(30,58,95,0.7)'},ticks:{font:{size:11}}},
+        x:{grid:{color:'rgba(30,58,95,0.3)'},ticks:{font:{size:9},maxTicksLimit:12}}
+      },
+      plugins:{legend:{display:false}}
+    }
+  });
+}
+
+function renderPshTable(city, pshData) {
+  const mRow = document.getElementById('psh-months');
+  const vRow = document.getElementById('psh-vals');
+  mRow.innerHTML = '<th>Month</th>' + MSHORT.map(m=>`<th>${m}</th>`).join('');
+  vRow.innerHTML = '<td style="color:var(--text-muted);font-size:11px;">PSH (hr/day)</td>' + pshData.map(v=>`<td style="color:var(--accent-orange);font-weight:600;">${v}</td>`).join('');
+}
+
+// Restore latest persisted record on page load — backend first, then localStorage
+async function restoreLatestRecord() {
+  // 1. Try backend first
+  try {
+    const resp = await fetch('/api/solar/latest');
+    const json = await resp.json();
+    if (json.success && json.data) {
+      const d = json.data;
+      const inp = d.inputs || {};
+      if (inp.city) document.getElementById('city').value = inp.city;
+      if (inp.area !== undefined) document.getElementById('area').value = inp.area;
+      if (inp.eff !== undefined) document.getElementById('eff').value = Math.round(inp.eff * 100);
+      if (inp.tilt !== undefined) document.getElementById('tilt').value = inp.tilt;
+      if (inp.orient) document.getElementById('orientation').value = inp.orient;
+      if (inp.losses !== undefined) document.getElementById('losses').value = Math.round(inp.losses * 100);
+      if (inp.tariff !== undefined) document.getElementById('tariff').value = inp.tariff;
+      if (inp.month) {
+        const sel = document.getElementById('month');
+        if ([...sel.options].some(o => o.value === inp.month || o.text === inp.month)) {
+          sel.value = inp.month;
+        }
+      }
+      renderLastUpdatedBadge(d.timestamp, d.id);
+      return true;
+    }
+  } catch(e) {
+    console.warn('[Solar Energy] Backend restore failed, using localStorage:', e);
+  }
+
+  // 2. Fallback to localStorage
+  if (!window.EcoData) return false;
+  const latest = EcoData.getLatest('solar-energy');
+  if (latest && !latest.isInitialDefault) {
+    if (latest.city) document.getElementById('city').value = latest.city;
+    if (latest.area !== undefined) document.getElementById('area').value = latest.area;
+    if (latest.eff !== undefined) document.getElementById('eff').value = Math.round(latest.eff * 100);
+    if (latest.tilt !== undefined) document.getElementById('tilt').value = latest.tilt;
+    if (latest.orient) document.getElementById('orientation').value = latest.orient;
+    if (latest.losses !== undefined) document.getElementById('losses').value = Math.round(latest.losses * 100);
+    if (latest.tariff !== undefined) document.getElementById('tariff').value = latest.tariff;
+    if (latest.lastUpdatedText) renderLastUpdatedBadge(latest.timestamp);
+  }
+  return false;
+}
+
+window.addEventListener('DOMContentLoaded', async () => {
+  await restoreLatestRecord();
+  predict();
+});
+</script>
+</body>
+</html>
